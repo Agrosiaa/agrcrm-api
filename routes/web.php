@@ -12,5 +12,7 @@
 */
 
 $app->get('/', function () use ($app) {
-    return $app->welcome();
+    return $app->version();
 });
+$app->get('/app-version', array('uses' => 'AuthController@getAppVersion'));
+

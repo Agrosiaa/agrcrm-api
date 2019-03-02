@@ -14,5 +14,10 @@
 $app->get('/', function () use ($app) {
     return $app->version();
 });
-$app->get('/app-version', array('uses' => 'AuthController@getAppVersion'));
+$app->group(['middleware' => ['cors']], function ($app) {
+    $app->get('/order-detail', array('uses' => 'AuthController@orderDetails'));
+    $app->get('/order-chat/{order_id}', array('uses' => 'AuthController@orderChats'));
+    $app->post('/order-reply', array('uses' => 'AuthController@orderReply'));
+    $app->post('/order-cancel', array('uses' => 'AuthController@orderCancel'));
+});
 

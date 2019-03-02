@@ -70,7 +70,7 @@ $app->singleton(
 // ]);
 
  $app->routeMiddleware([
-     'auth' => App\Http\Middleware\Authenticate::class,
+     'cors' => App\Http\Middleware\CorsMiddleware::class
  ]);
 
 /*
@@ -84,17 +84,15 @@ $app->singleton(
 |
 */
 
- $app->register(App\Providers\AppServiceProvider::class);
- $app->register(App\Providers\AuthServiceProvider::class);
+$app->register(App\Providers\AppServiceProvider::class);
+$app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
 $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 $app->register(Cviebrock\EloquentSluggable\ServiceProvider::class);
-$app->register(LaravelFCM\FCMServiceProvider::class);
-$app->register(\Barryvdh\DomPDF\ServiceProvider::class);
 $app->register(\Illuminate\Mail\MailServiceProvider::class);
 $app->configure('mail');
-class_alias(\LaravelFCM\Facades\FCM::class, 'FCM');
-class_alias(\LaravelFCM\Facades\FCMGroup::class, 'FCMGroup');
+$app->configure('cors');
+
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes

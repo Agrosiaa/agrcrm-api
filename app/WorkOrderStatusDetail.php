@@ -8,7 +8,7 @@ class WorkOrderStatusDetail extends Model
 {
     protected $table = "work_order_status_details";
 
-    protected $fillable = ['order_id','work_order_status_id','role_id'];
+    protected $fillable = ['order_id','work_order_status_id','role_id','customer_issue_id'];
 
     public function orders()
     {

@@ -42,10 +42,12 @@ class AuthController extends BaseController
                                                                 ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
                                                             ->get()->toArray();
             $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                                                            ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','5')
                                                             ->where('orders.order_status_id','!=','8')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
+                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date',
+                                                                'customer_issues.name')
                                                             ->get()->toArray();
             $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','6')

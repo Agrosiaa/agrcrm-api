@@ -94,7 +94,7 @@ class AuthController extends BaseController
             if($workOrderStatus->work_order_status_id == 3 || $workOrderStatus->work_order_status_id == 5){
                 $orderStatus = OrderStatus::where('slug', 'cancel')->first();
             }else{
-                $orderStatus = OrderStatus::where('slug', 'declined')->first();
+                $orderStatus = OrderStatus::where('slug', 'back_ordered')->first();
             }
             $order->update(array('order_status_id'=> $orderStatus->id,'updated_at' => $currentTime));
             $orderHistoryArray = array(

@@ -19,13 +19,13 @@ class AuthController extends BaseController
             $response = array();
             $response['data']['pending_due_to_vendor'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                         ->where('work_order_status_details.work_order_status_id','=','1')
-                                                        ->where('orders.order_status_id','!=','9')
+                                                        ->where('orders.order_status_id','!=','7')
                                                         ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                                                             ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
                                                         ->get()->toArray();
             $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','2')
-                                                            ->where('orders.order_status_id','!=','9')
+                                                            ->where('orders.order_status_id','!=','7')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                                                                 ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
                                                             ->get()->toArray();
@@ -37,7 +37,7 @@ class AuthController extends BaseController
                                                             ->get()->toArray();
             $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','4')
-                                                            ->where('orders.order_status_id','!=','9')
+                                                            ->where('orders.order_status_id','!=','7')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                                                                 ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
                                                             ->get()->toArray();
@@ -51,7 +51,7 @@ class AuthController extends BaseController
                                                             ->get()->toArray();
             $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','6')
-                                                            ->where('orders.order_status_id','!=','9')
+                                                            ->where('orders.order_status_id','!=','7')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                                                                 ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
                                                             ->get()->toArray();

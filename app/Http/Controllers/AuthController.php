@@ -5,6 +5,7 @@ use App\Chat;
 use App\Order;
 use App\OrderHistory;
 use App\OrderStatus;
+use App\SalesUser;
 use App\WorkOrderStatusDetail;
 use Carbon\Carbon;
 use Laravel\Lumen\Routing\Controller as BaseController;
@@ -21,39 +22,39 @@ class AuthController extends BaseController
                                                         ->where('work_order_status_details.work_order_status_id','=','1')
                                                         ->where('orders.order_status_id','!=','7')
                                                         ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                            ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
+                                                            ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
                                                         ->get()->toArray();
             $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','2')
                                                             ->where('orders.order_status_id','!=','7')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
+                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
                                                             ->get()->toArray();
             $response['data']['pending_for_customer_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','3')
                                                             ->where('orders.order_status_id','!=','8')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
+                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
                                                             ->get()->toArray();
             $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','4')
                                                             ->where('orders.order_status_id','!=','7')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
+                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
                                                             ->get()->toArray();
             $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','5')
                                                             ->where('orders.order_status_id','!=','8')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date',
+                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date',
                                                                 'customer_issues.name')
                                                             ->get()->toArray();
             $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                                                             ->where('work_order_status_details.work_order_status_id','=','6')
                                                             ->where('orders.order_status_id','!=','7')
                                                             ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.created_at as work_order_date')
+                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
                                                             ->get()->toArray();
         }catch (\Exception $e){
             $data = [
@@ -72,6 +73,8 @@ class AuthController extends BaseController
            $data = array();
            $data['order_id'] = $request->order_id;
            $data['message'] = $request->reply_message;
+           $data['work_order_status_id'] = $request->work_order_status_id;
+           $data['sales_id'] = $request->sales_id;
            $query = Chat::create($data);
 
         }catch(\Exception $e){
@@ -102,6 +105,7 @@ class AuthController extends BaseController
                 'order_id' => $request->order_id,
                 'order_status_id' => $orderStatus->id,
                 'user_id' => 4,
+                'sales_id' => $request->sales_id,
                 'reason' => $request->cancel_text,
                 'created_at' => $currentTime,
                 'updated_at' => $currentTime,
@@ -119,10 +123,18 @@ class AuthController extends BaseController
             $response = null;
         }
     }
-    public function orderChats(Request $request,$id){
+    public function orderChats(Request $request){
         try{
                 $status = 200;
-                $response = Chat::where('order_id',$id)->get();
+                $chatHistoryData = array();
+                $chatData = Chat::where('order_id',$request->order_id)->where('work_order_status_id',$request->work_order_status_id)->where('sales_id',$request->sales_id)->get()->toArray();
+                $i = 0;
+                foreach ($chatData as $value){
+                    $chatHistoryData[$i]['userName'] = SalesUser::where('id',$value['sales_id'])->pluck('name')->first();
+                    $chatHistoryData[$i]['time'] = $time = $this->humanTiming(strtotime($value['created_at']));
+                    $chatHistoryData[$i]['message'] = $value['message'];
+                    $i++;
+                }
         }catch(\Exception $e){
             $status = 500;
             $data = [
@@ -133,7 +145,27 @@ class AuthController extends BaseController
             Log::critical(json_encode($data));
             $response = null;
         }
-        return response()->json($response, $status);
+        return response()->json($chatHistoryData, $status);
+    }
+    function humanTiming ($time)
+    {
+        $time = time() - $time; // to get the time since that moment
+        $time = ($time<1)? 1 : $time;
+        $tokens = array (
+            31536000 => 'year',
+            2592000 => 'month',
+            604800 => 'week',
+            86400 => 'day',
+            3600 => 'hour',
+            60 => 'minute',
+            1 => 'second'
+        );
+        foreach ($tokens as $unit => $text) {
+            if ($time < $unit) continue;
+            $numberOfUnits = floor($time / $unit);
+            return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
+        }
+
     }
 }
 

@@ -133,6 +133,7 @@ class AuthController extends BaseController
                     $chatHistoryData[$i]['userName'] = SalesUser::where('id',$value['sales_id'])->pluck('name')->first();
                     $chatHistoryData[$i]['time'] = $time = $this->humanTiming(strtotime($value['created_at']));
                     $chatHistoryData[$i]['message'] = $value['message'];
+                    $chatHistoryData[$i]['order_id'] = $value['order_id'];
                     $i++;
                 }
         }catch(\Exception $e){

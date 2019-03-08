@@ -18,45 +18,93 @@ class AuthController extends BaseController
         try{
             $status = 200;
             $response = array();
-            $response['data']['pending_due_to_vendor'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
-                                                        ->where('work_order_status_details.work_order_status_id','=','1')
-                                                        ->where('orders.order_status_id','!=','7')
-                                                        ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                            ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
-                                                        ->get()->toArray();
-            $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
-                                                            ->where('work_order_status_details.work_order_status_id','=','2')
-                                                            ->where('orders.order_status_id','!=','7')
-                                                            ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
-                                                            ->get()->toArray();
-            $response['data']['pending_for_customer_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
-                                                            ->where('work_order_status_details.work_order_status_id','=','3')
-                                                            ->where('orders.order_status_id','!=','8')
-                                                            ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
-                                                            ->get()->toArray();
-            $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
-                                                            ->where('work_order_status_details.work_order_status_id','=','4')
-                                                            ->where('orders.order_status_id','!=','7')
-                                                            ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
-                                                            ->get()->toArray();
-            $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
-                                                            ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
-                                                            ->where('work_order_status_details.work_order_status_id','=','5')
-                                                            ->where('orders.order_status_id','!=','8')
-                                                            ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date',
-                                                                'customer_issues.name')
-                                                            ->get()->toArray();
-            $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
-                                                            ->where('work_order_status_details.work_order_status_id','=','6')
-                                                            ->where('orders.order_status_id','!=','7')
-                                                            ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                                                                ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
-                                                            ->get()->toArray();
-        }catch (\Exception $e){
+            if($request->role_id == 1){
+                $response['data']['pending_due_to_vendor'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','1')
+                    ->where('orders.order_status_id','!=','7')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','2')
+                    ->where('orders.order_status_id','!=','7')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['pending_for_customer_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','3')
+                    ->where('orders.order_status_id','!=','8')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','4')
+                    ->where('orders.order_status_id','!=','7')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
+                    ->where('work_order_status_details.work_order_status_id','=','5')
+                    ->where('orders.order_status_id','!=','8')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date',
+                        'customer_issues.name')
+                    ->get()->toArray();
+                $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','6')
+                    ->where('orders.order_status_id','!=','7')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+            }else{
+                $response['data']['pending_due_to_vendor'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','1')
+                    ->where('orders.order_status_id','!=','7')
+                    ->where('orders.sales_id','=',$request->sales_id)
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','2')
+                    ->where('orders.order_status_id','!=','7')
+                    ->where('orders.sales_id','=',$request->sales_id)
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['pending_for_customer_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','3')
+                    ->where('orders.order_status_id','!=','8')
+                    ->where('orders.sales_id','=',$request->sales_id)
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','4')
+                    ->where('orders.order_status_id','!=','7')
+                    ->where('orders.sales_id','=',$request->sales_id)
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+                $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
+                    ->where('work_order_status_details.work_order_status_id','=','5')
+                    ->where('orders.order_status_id','!=','8')
+                    ->where('orders.sales_id','=',$request->sales_id)
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date',
+                        'customer_issues.name')
+                    ->get()->toArray();
+                $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
+                    ->where('work_order_status_details.work_order_status_id','=','6')
+                    ->where('orders.order_status_id','!=','7')
+                    ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                    ->get()->toArray();
+            }
+
+
+        }catch(\Exception $e){
             $data = [
                 'action' => 'Work order status details',
                 'exception' => $e->getMessage()

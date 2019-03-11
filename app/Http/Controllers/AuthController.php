@@ -175,7 +175,11 @@ class AuthController extends BaseController
         try{
                 $status = 200;
                 $chatHistoryData = array();
-                $chatData = Chat::where('order_id',$request->order_id)->where('work_order_status_id',$request->work_order_status_id)->where('sales_id',$request->sales_id)->get()->toArray();
+                if($request->sales_id == 1){
+                    $chatData = Chat::where('order_id',$request->order_id)->where('work_order_status_id',$request->work_order_status_id)->get()->toArray();
+                }else{
+                    $chatData = Chat::where('order_id',$request->order_id)->where('work_order_status_id',$request->work_order_status_id)->where('sales_id',$request->sales_id)->get()->toArray();
+                }
                 $i = 0;
                 foreach ($chatData as $value){
                     $chatHistoryData[$i]['userName'] = SalesUser::where('id',$value['sales_id'])->pluck('name')->first();

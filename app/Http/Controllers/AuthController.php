@@ -98,6 +98,7 @@ class AuthController extends BaseController
                 $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','6')
                     ->where('orders.order_status_id','!=','7')
+                    ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                         ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
                     ->get()->toArray();

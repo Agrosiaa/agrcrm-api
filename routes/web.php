@@ -16,6 +16,7 @@ $app->get('/', function () use ($app) {
 });
 $app->group(['middleware' => ['cors']], function ($app) {
     $app->get('/order-detail', array('uses' => 'AuthController@orderDetails'));
+    $app->get('/order-search', array('uses' => 'AuthController@orderSearch'));
     $app->get('/order-chat', array('uses' => 'AuthController@orderChats'));
     $app->post('/order-reply', array('uses' => 'AuthController@orderReply'));
     $app->post('/order-cancel', array('uses' => 'AuthController@orderCancel'));

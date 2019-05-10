@@ -2,10 +2,14 @@
 namespace App\Http\Controllers;
 
 use App\Chat;
+use App\Customer;
+use App\CustomerAddress;
 use App\Order;
 use App\OrderHistory;
 use App\OrderStatus;
+use App\Role;
 use App\SalesUser;
+use App\User;
 use App\WorkOrderStatusDetail;
 use Carbon\Carbon;
 use Laravel\Lumen\Routing\Controller as BaseController;
@@ -16,7 +20,7 @@ class AuthController extends BaseController
 {
     public function orderDetails(Request $request){
         try{
-            $status = 200;
+            $status = '200';
             $response = array();
             if($request->role_id == 1){
                 $response['data']['pending_due_to_vendor'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
@@ -109,11 +113,30 @@ class AuthController extends BaseController
                 'exception' => $e->getMessage()
             ];
             Log::critical(json_encode($data));
-            $status = 500;
+            $status = '500';
             $response = null;
         }
         return response()->json($response, $status);
     }
+
+    public function createdCustomers(){
+        try{
+            $status = '200';
+            $customerRole = Role::where('slug','=','customer')->value('id');
+            $response = User::where('role_id','=',$customerRole)->pluck('mobile')->toArray();
+        }catch (\Exception $e){
+            $status = '500';
+            $data = [
+                'action' => 'Created Customers',
+                'status' =>$status,
+                'exception' => $e->getMessage(),
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
+        return response()->json($response, $status);
+    }
+
     public function orderReply(Request $request){
         try{
            $status = 200;
@@ -235,6 +258,45 @@ class AuthController extends BaseController
         }
         return response()->json($response, $status);
 
+    }
+
+    public function createCustomer(Request $request){
+        try{
+            $status = 200;
+            $userData['first_name'] = $request->name;
+            $userData['email'] = $request->email;
+            $userData['mobile'] = $request->mobile;
+            $userData['dob'] = $request->dob;
+            $userData['password'] = bcrypt($request->mobile);
+            $userData['is_active'] = true;
+            $userData['role_id'] = Role::where('slug','=','customer')->value('id');
+            $user = User::create($userData);
+            $customerData['user_id'] = $user->id;
+            $customerData['is_web'] = true;
+            $customer = Customer::create($customerData);
+            $customerAddress['customer_id'] = $customer->id;
+            $customerAddress['full_name'] = $request->name;
+            $customerAddress['mobile'] = $request->mobile;
+            $customerAddress['flat_door_block_house_no'] = $request->house_block;
+            $customerAddress['name_of_premise_building_village'] = $request->village_premises;
+            $customerAddress['area_locality_wadi'] = $request->area;
+            $customerAddress['road_street_lane'] = $request->road_street;
+            $customerAddress['at_post'] = $request->at_post;
+            $customerAddress['taluka'] = $request->taluka;
+            $customerAddress['district'] = $request->dist;
+            $customerAddress['state'] = $request->state;
+            $customerAddress['pincode'] = $request->pin;
+            CustomerAddress::create($customerAddress);
+        }catch(\Exception $e){
+            $status = 500;
+            $data = [
+                'action' => 'Create new customer',
+                'status' =>$status,
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
     }
 }
 

@@ -20,5 +20,7 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->get('/order-chat', array('uses' => 'AuthController@orderChats'));
     $app->post('/order-reply', array('uses' => 'AuthController@orderReply'));
     $app->post('/order-cancel', array('uses' => 'AuthController@orderCancel'));
+    $app->post('/create-customer', array('uses' => 'AuthController@createCustomer'));
+    $app->get('/created-customers', array('uses' => 'AuthController@createdCustomers'));
 });
 

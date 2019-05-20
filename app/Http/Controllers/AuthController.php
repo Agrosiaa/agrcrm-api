@@ -263,7 +263,8 @@ class AuthController extends BaseController
     public function createCustomer(Request $request){
         try{
             $status = 200;
-            $userData['first_name'] = $request->name;
+            $userData['first_name'] = $request->fname;
+            $userData['last_name'] = $request->lname;
             $userData['email'] = $request->email;
             $userData['mobile'] = $request->mobile;
             $userData['dob'] = $request->dob;
@@ -274,19 +275,23 @@ class AuthController extends BaseController
             $customerData['user_id'] = $user->id;
             $customerData['is_web'] = true;
             $customer = Customer::create($customerData);
-            $customerAddress['customer_id'] = $customer->id;
-            $customerAddress['full_name'] = $request->name;
-            $customerAddress['mobile'] = $request->mobile;
-            $customerAddress['flat_door_block_house_no'] = $request->house_block;
-            $customerAddress['name_of_premise_building_village'] = $request->village_premises;
-            $customerAddress['area_locality_wadi'] = $request->area;
-            $customerAddress['road_street_lane'] = $request->road_street;
-            $customerAddress['at_post'] = $request->at_post;
-            $customerAddress['taluka'] = $request->taluka;
-            $customerAddress['district'] = $request->dist;
-            $customerAddress['state'] = $request->state;
-            $customerAddress['pincode'] = $request->pin;
-            CustomerAddress::create($customerAddress);
+            if($request->has('house_block') && $request->has('village_premises')){
+                if($request->house_block != '' && $request->village_premises != ''){
+                    $customerAddress['customer_id'] = $customer->id;
+                    $customerAddress['full_name'] = $request->address_fname;
+                    $customerAddress['mobile'] = $request->address_mobile;
+                    $customerAddress['flat_door_block_house_no'] = $request->house_block;
+                    $customerAddress['name_of_premise_building_village'] = $request->village_premises;
+                    $customerAddress['area_locality_wadi'] = $request->area;
+                    $customerAddress['road_street_lane'] = $request->road_street;
+                    $customerAddress['at_post'] = $request->at_post;
+                    $customerAddress['taluka'] = $request->taluka;
+                    $customerAddress['district'] = $request->dist;
+                    $customerAddress['state'] = $request->state;
+                    $customerAddress['pincode'] = $request->pin;
+                    CustomerAddress::create($customerAddress);
+                }
+            }
         }catch(\Exception $e){
             $status = 500;
             $data = [

@@ -303,6 +303,44 @@ class AuthController extends BaseController
             $response = null;
         }
     }
+
+    public function customerProfile(Request $request){
+        try{
+            $status = '200';
+            $response['profile'] = User::where('mobile',$request->mobile)->first();
+            $response['address'] = User::join('customers','customers.user_id','=','users.id')
+                ->join('customer_addresses','customer_addresses.customer_id','=','customers.id')
+                ->where('users.mobile',$request->mobile)
+                ->select('customer_addresses.*')
+                ->get()->toArray();
+            $response['orders'] = User::join('customers','customers.user_id','=','users.id')
+                ->join('orders','orders.customer_id','=','customers.id')
+                ->join('products','orders.product_id','=','products.id')
+                ->join('order_status','orders.order_status_id','=','order_status.id')
+                ->join('payment_methods','orders.payment_method_id','=','payment_methods.id')
+                ->where('users.mobile',$request->mobile)
+                ->select('orders.id','orders.quantity','orders.created_at','orders.subtotal','orders.consignment_number','products.product_name','order_status.status','payment_methods.name as payment_mode')
+                ->get()->toArray();
+            $response['returns'] = User::join('customers','customers.user_id','=','users.id')
+                ->join('orders','orders.customer_id','=','customers.id')
+                ->join('order_rma','order_rma.order_id','=','orders.id')
+                ->join('order_status','orders.order_status_id','=','order_status.id')
+                ->join('payment_methods','orders.payment_method_id','=','payment_methods.id')
+                ->where('users.mobile',$request->mobile)
+                ->select('orders.id','orders.quantity','orders.created_at','orders.subtotal','orders.consignment_number','order_rma.product_name','order_status.status','payment_methods.name as payment_mode')
+                ->get()->toArray();
+        }catch (\Exception $e){
+            $status = '500';
+            $data = [
+                'action' => 'Created Customers',
+                'status' =>$status,
+                'exception' => $e->getMessage(),
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
+        return response()->json($response, $status);
+    }
 }
 
 

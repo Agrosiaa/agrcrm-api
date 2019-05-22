@@ -22,5 +22,6 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->post('/order-cancel', array('uses' => 'AuthController@orderCancel'));
     $app->post('/create-customer', array('uses' => 'AuthController@createCustomer'));
     $app->get('/created-customers', array('uses' => 'AuthController@createdCustomers'));
+    $app->get('/customer-profile', array('uses' => 'AuthController@customerProfile'));
 });
 

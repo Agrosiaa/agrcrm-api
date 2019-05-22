@@ -7,6 +7,7 @@ use App\CustomerAddress;
 use App\Order;
 use App\OrderHistory;
 use App\OrderStatus;
+use App\PostOffice;
 use App\Role;
 use App\SalesUser;
 use App\User;
@@ -297,6 +298,96 @@ class AuthController extends BaseController
             Log::critical(json_encode($data));
             $response = null;
         }
+    }
+    public function getPincode(Request $request){
+        try {
+            $status = 200;
+            $requestPincode = trim($request['pincode']);
+            if ($requestPincode == "" || $requestPincode == null) {
+                $pincode = null;
+            } else {
+                $pincode = array();
+                $pincodeData = PostOffice::where('pincode',$requestPincode)->select('state','office_name')->get();
+                if(count($pincodeData) > 0){
+                    foreach($pincodeData as $data){
+                        if(array_key_exists($requestPincode,$pincode)){
+                            $pincode[$requestPincode]['post_offices'] .= '<option value="'.$data->office_name.'">'.$data->office_name.'</option>';
+                        }else{
+                            $pincode[$requestPincode] = array();
+                            $pincode[$requestPincode]['pincode'] = $requestPincode;
+                            $pincode[$requestPincode]['post_offices'] = '<option value="'.$data->office_name.'">'.$data->office_name.'</option>';
+                            $pincode[$requestPincode]['state'] = $data->state;
+                        }
+                    }
+                }else{
+                    $pincodeData = Curl::to('http://postalpincode.in/api/pincode/'.$requestPincode)->get();
+                    $pincodeData = json_decode($pincodeData);
+                    if($pincodeData->PostOffice != null){
+                        foreach($pincodeData->PostOffice as $data){
+                            if(array_key_exists($requestPincode,$pincode)){
+                                $pincode[$requestPincode]['post_offices'] .= '<option value="'.$data->Name.'">'.$data->Name.'</option>';
+                            }else{
+                                $pincode[$requestPincode] = array();
+                                $pincode[$requestPincode]['pincode'] = $requestPincode;
+                                $pincode[$requestPincode]['post_offices'] = '<option value="'.$data->Name.'">'.$data->Name.'</option>';
+                                $pincode[$requestPincode]['state'] = $data->State;
+                            }
+                        }
+                    }else{
+                        $pincode = null;
+                    }
+                }
+
+            }
+        }catch (\Exception $e){
+            $status = 500;
+            $pincode = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'get pincode',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        return response()->json($pincode,$status);
+    }
+
+    public function getPostOfficeInfo(Request $request,$postOffice){
+        try{
+            $postOffice = str_replace("%20"," ",$postOffice);
+            $status = 200;
+            $postOfficeInfo = PostOffice::where('pincode',$request->pincode)->where('office_name','ilike', trim($postOffice))->first();
+            if($postOfficeInfo != null){
+                $response = [
+                    'taluka' => $postOfficeInfo->taluka,
+                    'district' => $postOfficeInfo->district
+                ];
+            }else{
+                $postOffice = str_replace(" ","%20",$postOffice);
+                $postOfficeResponse = Curl::to('http://postalpincode.in/api/postoffice/'.($postOffice))->get();
+                $postOfficeResponse = json_decode($postOfficeResponse);
+                $response = array();
+                if($postOfficeResponse->PostOffice != null){
+                    foreach($postOfficeResponse->PostOffice as $postOffice){
+                        $response = [
+                            'taluka' => $postOffice->Taluk,
+                            'district' => $postOffice->District
+                        ];
+                    }
+                }
+            }
+
+        }catch (\Exception $e){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'Get post office info',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        return response()->json($response,$status);
     }
 }
 

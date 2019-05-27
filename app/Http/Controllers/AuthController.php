@@ -433,6 +433,25 @@ class AuthController extends BaseController
         }
         return response()->json($response,$status);
     }
+    public function editProfile(Request $request){
+        try{
+            $userData['first_name'] = $request->f_name;
+            $userData['last_name'] = $request->l_name;
+            $userData['email'] = $request->email;
+            $userData['mobile'] = $request->mobile;
+            $userData['dob'] = $request->dob;
+            User::where('id',$request->id)->update($userData);
+        }catch (\Exception $exception){
+                $status = 500;
+                $response = null;
+                $data = [
+                    'input_params' => $request->all(),
+                    'action' => 'Get post office info',
+                    'exception' => $exception->getMessage()
+                ];
+                Log::critical(json_encode($data));
+        }
+    }
 }
 
 

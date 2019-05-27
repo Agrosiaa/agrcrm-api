@@ -25,5 +25,6 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->get('/customer-profile', array('uses' => 'AuthController@customerProfile'));
     $app->get('/get-post-office-info/{id}', array('uses' => 'AuthController@getPostOfficeInfo'));
     $app->get('/get-pincode',array('uses' => 'AuthController@getPincode'));
+    $app->post('/edit-profile',array('uses' => 'AuthController@editProfile'));
 });
 

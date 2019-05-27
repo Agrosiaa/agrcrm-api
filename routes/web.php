@@ -22,5 +22,11 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->post('/order-cancel', array('uses' => 'AuthController@orderCancel'));
     $app->post('/create-customer', array('uses' => 'AuthController@createCustomer'));
     $app->get('/created-customers', array('uses' => 'AuthController@createdCustomers'));
+    $app->get('/customer-profile', array('uses' => 'AuthController@customerProfile'));
+    $app->get('/get-post-office-info/{id}', array('uses' => 'AuthController@getPostOfficeInfo'));
+    $app->get('/get-pincode',array('uses' => 'AuthController@getPincode'));
+    $app->post('/edit-profile',array('uses' => 'AuthController@editProfile'));
+    $app->get('/delete-address',array('uses' => 'AuthController@deleteAddress'));
+    $app->get('/get-products',array('uses' => 'AuthController@getProducts'));
 });
 

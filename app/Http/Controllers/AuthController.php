@@ -7,6 +7,8 @@ use App\CustomerAddress;
 use App\Order;
 use App\OrderHistory;
 use App\OrderStatus;
+use App\PostOffice;
+use App\Product;
 use App\Role;
 use App\SalesUser;
 use App\User;
@@ -263,7 +265,8 @@ class AuthController extends BaseController
     public function createCustomer(Request $request){
         try{
             $status = 200;
-            $userData['first_name'] = $request->name;
+            $userData['first_name'] = $request->fname;
+            $userData['last_name'] = $request->lname;
             $userData['email'] = $request->email;
             $userData['mobile'] = $request->mobile;
             $userData['dob'] = $request->dob;
@@ -274,19 +277,23 @@ class AuthController extends BaseController
             $customerData['user_id'] = $user->id;
             $customerData['is_web'] = true;
             $customer = Customer::create($customerData);
-            $customerAddress['customer_id'] = $customer->id;
-            $customerAddress['full_name'] = $request->name;
-            $customerAddress['mobile'] = $request->mobile;
-            $customerAddress['flat_door_block_house_no'] = $request->house_block;
-            $customerAddress['name_of_premise_building_village'] = $request->village_premises;
-            $customerAddress['area_locality_wadi'] = $request->area;
-            $customerAddress['road_street_lane'] = $request->road_street;
-            $customerAddress['at_post'] = $request->at_post;
-            $customerAddress['taluka'] = $request->taluka;
-            $customerAddress['district'] = $request->dist;
-            $customerAddress['state'] = $request->state;
-            $customerAddress['pincode'] = $request->pin;
-            CustomerAddress::create($customerAddress);
+            if($request->has('house_block') && $request->has('village_premises')){
+                if($request->house_block != '' && $request->village_premises != ''){
+                    $customerAddress['customer_id'] = $customer->id;
+                    $customerAddress['full_name'] = $request->address_fname;
+                    $customerAddress['mobile'] = $request->address_mobile;
+                    $customerAddress['flat_door_block_house_no'] = $request->house_block;
+                    $customerAddress['name_of_premise_building_village'] = $request->village_premises;
+                    $customerAddress['area_locality_wadi'] = $request->area;
+                    $customerAddress['road_street_lane'] = $request->road_street;
+                    $customerAddress['at_post'] = $request->at_post;
+                    $customerAddress['taluka'] = $request->taluka;
+                    $customerAddress['district'] = $request->dist;
+                    $customerAddress['state'] = $request->state;
+                    $customerAddress['pincode'] = $request->pin;
+                    CustomerAddress::create($customerAddress);
+                }
+            }
         }catch(\Exception $e){
             $status = 500;
             $data = [
@@ -296,6 +303,184 @@ class AuthController extends BaseController
             ];
             Log::critical(json_encode($data));
             $response = null;
+        }
+    }
+
+    public function customerProfile(Request $request)
+    {
+        try {
+            $status = '200';
+            $response['profile'] = User::where('mobile', $request->mobile)->first();
+            $response['address'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                ->join('customer_addresses', 'customer_addresses.customer_id', '=', 'customers.id')
+                ->where('users.mobile', $request->mobile)
+                ->select('customer_addresses.*')
+                ->get()->toArray();
+            $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                ->join('products', 'orders.product_id', '=', 'products.id')
+                ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                ->where('users.mobile', $request->mobile)
+                ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
+                ->get()->toArray();
+            $response['returns'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                ->join('order_rma', 'order_rma.order_id', '=', 'orders.id')
+                ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                ->where('users.mobile', $request->mobile)
+                ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'order_rma.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
+                ->get()->toArray();
+        } catch (\Exception $e) {
+            $status = '500';
+            $data = [
+                'action' => 'Created Customers',
+                'status' => $status,
+                'exception' => $e->getMessage(),
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
+        return response()->json($response, $status);
+    }
+    public function getPincode(Request $request){
+        try {
+            $status = 200;
+            $requestPincode = trim($request['pincode']);
+            if ($requestPincode == "" || $requestPincode == null) {
+                $pincode = null;
+            } else {
+                $pincode = array();
+                $pincodeData = PostOffice::where('pincode',$requestPincode)->select('state','office_name')->get();
+                if(count($pincodeData) > 0){
+                    foreach($pincodeData as $data){
+                        if(array_key_exists($requestPincode,$pincode)){
+                            $pincode[$requestPincode]['post_offices'] .= '<option value="'.$data->office_name.'">'.$data->office_name.'</option>';
+                        }else{
+                            $pincode[$requestPincode] = array();
+                            $pincode[$requestPincode]['pincode'] = $requestPincode;
+                            $pincode[$requestPincode]['post_offices'] = '<option value="'.$data->office_name.'">'.$data->office_name.'</option>';
+                            $pincode[$requestPincode]['state'] = $data->state;
+                        }
+                    }
+                }else{
+                    $pincodeData = Curl::to('http://postalpincode.in/api/pincode/'.$requestPincode)->get();
+                    $pincodeData = json_decode($pincodeData);
+                    if($pincodeData->PostOffice != null){
+                        foreach($pincodeData->PostOffice as $data){
+                            if(array_key_exists($requestPincode,$pincode)){
+                                $pincode[$requestPincode]['post_offices'] .= '<option value="'.$data->Name.'">'.$data->Name.'</option>';
+                            }else{
+                                $pincode[$requestPincode] = array();
+                                $pincode[$requestPincode]['pincode'] = $requestPincode;
+                                $pincode[$requestPincode]['post_offices'] = '<option value="'.$data->Name.'">'.$data->Name.'</option>';
+                                $pincode[$requestPincode]['state'] = $data->State;
+                            }
+                        }
+                    }else{
+                        $pincode = null;
+                    }
+                }
+
+            }
+        }catch (\Exception $e){
+            $status = 500;
+            $pincode = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'get pincode',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        return response()->json($pincode,$status);
+    }
+
+    public function getPostOfficeInfo(Request $request,$postOffice){
+        try{
+            $postOffice = str_replace("%20"," ",$postOffice);
+            $status = 200;
+            $postOfficeInfo = PostOffice::where('pincode',$request->pincode)->where('office_name','ilike', trim($postOffice))->first();
+            if($postOfficeInfo != null){
+                $response = [
+                    'taluka' => $postOfficeInfo->taluka,
+                    'district' => $postOfficeInfo->district
+                ];
+            }else{
+                $postOffice = str_replace(" ","%20",$postOffice);
+                $postOfficeResponse = Curl::to('http://postalpincode.in/api/postoffice/'.($postOffice))->get();
+                $postOfficeResponse = json_decode($postOfficeResponse);
+                $response = array();
+                if($postOfficeResponse->PostOffice != null){
+                    foreach($postOfficeResponse->PostOffice as $postOffice){
+                        $response = [
+                            'taluka' => $postOffice->Taluk,
+                            'district' => $postOffice->District
+                        ];
+                    }
+                }
+            }
+
+        }catch (\Exception $e){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'Get post office info',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+        return response()->json($response,$status);
+    }
+    public function editProfile(Request $request){
+        try{
+            $userData['first_name'] = $request->f_name;
+            $userData['last_name'] = $request->l_name;
+            $userData['email'] = $request->email;
+            $userData['mobile'] = $request->mobile;
+            $userData['dob'] = $request->dob;
+            User::where('id',$request->id)->update($userData);
+        }catch (\Exception $exception){
+                $status = 500;
+                $response = null;
+                $data = [
+                    'input_params' => $request->all(),
+                    'action' => 'Get post office info',
+                    'exception' => $exception->getMessage()
+                ];
+                Log::critical(json_encode($data));
+        }
+    }
+
+    public function deleteAddress(Request $request){
+        try{
+           CustomerAddress::where('id',$request->address_id)->delete();
+        }catch (\Exception $exception){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'delete address',
+                'exception' => $exception->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+    }
+
+    public function getProducts(Request $request){
+        try{
+            $response = Product::where('product_name','ilike','%'.$request->product_name.'%')->get()->toArray();
+        }catch (\Exception $exception){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'get products',
+                'exception' => $exception->getMessage()
+            ];
+            Log::critical(json_encode($data));
         }
     }
 }

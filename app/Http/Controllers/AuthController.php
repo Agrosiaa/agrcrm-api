@@ -8,6 +8,7 @@ use App\Order;
 use App\OrderHistory;
 use App\OrderStatus;
 use App\PostOffice;
+use App\Product;
 use App\Role;
 use App\SalesUser;
 use App\User;
@@ -450,6 +451,36 @@ class AuthController extends BaseController
                     'exception' => $exception->getMessage()
                 ];
                 Log::critical(json_encode($data));
+        }
+    }
+
+    public function deleteAddress(Request $request){
+        try{
+           CustomerAddress::where('id',$request->address_id)->delete();
+        }catch (\Exception $exception){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'delete address',
+                'exception' => $exception->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+    }
+
+    public function getProducts(Request $request){
+        try{
+            $response = Product::where('product_name','ilike','%'.$request->product_name.'%')->get()->toArray();
+        }catch (\Exception $exception){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'get products',
+                'exception' => $exception->getMessage()
+            ];
+            Log::critical(json_encode($data));
         }
     }
 }

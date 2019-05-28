@@ -483,6 +483,63 @@ class AuthController extends BaseController
             Log::critical(json_encode($data));
         }
     }
+
+    public function addAddress(Request $request){
+        try{
+           $customerId = Customer::where('user_id',$request->user_id)->value('id');
+           $customerAddress = CustomerAddress::where('customer_id',$customerId)->get()->toArray();
+           if(count($customerAddress) < 3){
+               $addressData['customer_id'] = $customerId;
+               $addressData['full_name'] = $request->address_fname;
+               $addressData['mobile'] = $request->address_mobile;
+               $addressData['flat_door_block_house_no'] = $request->house_block;
+               $addressData['name_of_premise_building_village'] = $request->village_premises;
+               $addressData['area_locality_wadi'] = $request->area;
+               $addressData['road_street_lane'] = $request->road_street;
+               $addressData['at_post'] = $request->at_post;
+               $addressData['taluka'] = $request->taluka;
+               $addressData['district'] = $request->dist;
+               $addressData['state'] = $request->state;
+               $addressData['pincode'] = $request->pin;
+               CustomerAddress::create($addressData);
+           }
+        }catch (\Exception $exception){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'add address',
+                'exception' => $exception->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+    }
+
+    public function editAddress(Request $request){
+        try{
+            $addressData['full_name'] = $request->address_fname;
+            $addressData['mobile'] = $request->address_mobile;
+            $addressData['flat_door_block_house_no'] = $request->house_block;
+            $addressData['name_of_premise_building_village'] = $request->village_premises;
+            $addressData['area_locality_wadi'] = $request->area;
+            $addressData['road_street_lane'] = $request->road_street;
+            $addressData['at_post'] = $request->at_post;
+            $addressData['taluka'] = $request->taluka;
+            $addressData['district'] = $request->dist;
+            $addressData['state'] = $request->state;
+            $addressData['pincode'] = $request->pin;
+            $customerAddress = CustomerAddress::where('id',$request->address_id)->update($addressData);
+        }catch (\Exception $exception){
+            $status = 500;
+            $response = null;
+            $data = [
+                'input_params' => $request->all(),
+                'action' => 'edit address',
+                'exception' => $exception->getMessage()
+            ];
+            Log::critical(json_encode($data));
+        }
+    }
 }
 
 

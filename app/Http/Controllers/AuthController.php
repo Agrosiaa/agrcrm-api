@@ -469,19 +469,155 @@ class AuthController extends BaseController
         }
     }
 
-    public function getProducts(Request $request){
+//    public function getProducts(Request $request){
+//        try{
+//            $status = 200;
+//            Log::info(json_encode(trim($request->product_name)));
+//            $response = Product::where('product_name','ilike','%'.trim($request->product_name).'%')->get();
+//            Log::info($response);
+//        }catch (\Exception $exception){
+//            $status = 500;
+//            $response = null;
+//            $data = [
+//                'input_params' => $request->all(),
+//                'action' => 'get products',
+//                'exception' => $exception->getMessage()
+//            ];
+//            Log::critical(json_encode($data));
+//        }
+//        return response()->json($response,$status);
+//    }
+    public function getProducts(Request $request) {
         try{
-            $response = Product::where('product_name','ilike','%'.$request->product_name.'%')->get()->toArray();
-        }catch (\Exception $exception){
+            $status = 200;
+            $keyword = trim($request->product_name);
+            if($keyword == ''){
+                $relevantResult = "";
+                $status = 500;
+            }else{
+                $relevantResult = $this->getRelevantResult($request->product_name);
+            }
+        }catch (\Exception $e){
             $status = 500;
-            $response = null;
             $data = [
                 'input_params' => $request->all(),
-                'action' => 'get products',
-                'exception' => $exception->getMessage()
+                'action' => 'auto suggest',
+                'exception' => $e->getMessage()
             ];
             Log::critical(json_encode($data));
+            $relevantResult = '';
         }
+        return response()->json($relevantResult,$status);
+    }
+
+    public function getRelevantResult($keyword)
+    {
+        $product_id = array();
+        $searchResultsTake = env('SEARCH_RESULT');
+        $products = Product::whereIn('id',$product_id)->where('is_active',1)->where('quantity','!=',0)->select('id','product_name as name','slug','discounted_price')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
+
+        for($iterator = 0 ;$iterator < count($products) ; $iterator++){
+                $products[$iterator]['translated_name'] = ucwords($products[$iterator]['name']);
+        }
+        $productCount = count($products);
+
+        $keywordLower = strtolower($keyword);
+        $tags = $this->getTags($keywordLower,$searchResultsTake);
+        $tag = $tags['data'];
+        $tagCount = count($tag);
+        $max = max($productCount,$tagCount);
+        $k = 0;
+        for($i = 0 ; $i  < $max ; $i++) {
+            if(!empty($products[$i])) {
+                $relevantData[$k] = $this->arrayFill($products[$i],$keywordLower,trans('product'),"btn-info",'product');
+                $k++;
+            }
+
+            if(!empty($tag[$i])) {
+                $relevantData[$k]['id'] = $tag[$i]['id'];
+                $relevantData[$k]['name'] = $tag[$i]['name'];
+                $relevantData[$k]['translated_name'] = $tag[$i]['translated_name'];
+                $stringPosition = stripos($tag[$i]['name'],$keywordLower);
+                if(is_int($stringPosition)){
+                    $relevantData[$k]['position'] = $stringPosition;
+                } else {
+                    $relevantData[$k]['position'] = 25;
+                }
+                $relevantData[$k]['translated_slug'] = trans('product');
+                $relevantData[$k]['slug'] = 'keyword';
+                $relevantData[$k]['class'] = "btn-danger";
+                $relevantData[$k]['url_param'] = '';
+                $k++;
+            }
+        }
+        return $relevantData;
+    }
+
+    public function arrayFill($data,$keywordLower,$translatedSlug,$class,$slug) {
+        $relevantData = array();
+            $relevantData['id'] = $data['id'];
+            $relevantData['name'] = $data['name'];
+            $relevantData['translated_name'] = $data['translated_name'];
+            $relevantData['url_param'] = $data['slug'];
+            $relevantData['position'] = stripos($data['name'],$keywordLower);
+            $relevantData['translated_slug'] = $translatedSlug;
+            $relevantData['slug'] = $slug;
+            $relevantData['class'] = $class;
+        return $relevantData;
+    }
+
+    public function getTags($keywordLower,$searchResultsTake) {
+        $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('quantity','!=',0)->select('id','product_name','search_keywords','discounted_price')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
+        $k = 0;
+        $tagData = array();
+        foreach($products as $product) {
+            $keywordsArray = explode(",", $product['search_keywords']);
+            $j = 0;
+            foreach($keywordsArray as $keyword) {
+                $keyword = strtolower($keyword);
+                $percent[$j] = similar_text($keyword, $keywordLower);
+                $j++;
+            }
+            $maxValue = max($percent);
+            $key = array_search($maxValue,$percent);
+            if(!empty($data) && $data['percent'] < $maxValue){
+                $keywordsData['key'] = $key;
+                $keywordsData['keyword'] = $keywordsArray[$key];
+                $keywordsData['percent'] = $maxValue;
+                $keywordsData['product_id'] = $product['id'];
+            } else {
+                $keywordsData['key'] = $key;
+                $keywordsData['keyword'] = $keywordsArray[$key];
+                $keywordsData['percent'] = $maxValue;
+                $keywordsData['product_id'] = $product['id'];
+            }
+            $alreadyFlag = false;
+            foreach($tagData as $tags){
+                if($tags['name'] == $keywordsData['keyword']){
+                    $alreadyFlag = true;
+                    break;
+                }
+            }
+            if(!$alreadyFlag){
+                $tagData[$k]['id'] = $keywordsData['product_id'];
+                $tagData[$k]['name'] = $keywordsData['keyword'];
+                $tagData[$k]['translated_name'] = $keywordsData['keyword'];
+                $tagData[$k]['percent'] = $keywordsData['percent'];
+                $k++;
+            }
+        }
+        if (!empty($tagData)) {
+            foreach ($tagData as $key => $part) {
+                $sort[$key] = $part['percent'];
+            }
+            array_multisort($sort, SORT_DESC, $tagData);
+            $tag['data'] = $tagData;
+            $tag['condition'] = TRUE;
+        }else{
+            $tag['data'] = NULL;
+            $tag['condition'] = FALSE;
+        }
+        return $tag;
     }
 }
 

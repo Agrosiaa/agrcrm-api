@@ -523,7 +523,7 @@ class AuthController extends BaseController
                 $relevantData[$k]['class'] = "btn-danger";
                 $relevantData[$k]['url_param'] = '';
                 $relevantData[$k]['discounted_price'] = $tag[$i]['discounted_price'];
-                $relevantData[$k]['image'] = $tag[$i]['image'];
+                $relevantData[$k]['seller_sku'] = $tag[$i]['seller_sku'];
                 $k++;
             }
         }
@@ -532,18 +532,10 @@ class AuthController extends BaseController
 
 
     public function getTags($keywordLower,$searchResultsTake) {
-        $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('is_active',1)->where('quantity','!=',0)->select('id','product_name','search_keywords','discounted_price','seller_id')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
+        $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('is_active',1)->where('quantity','!=',0)->select('id','product_name','search_keywords','discounted_price','seller_sku')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
         $k = 0;
         $tagData = array();
-        $file='';
         foreach($products as $product) {
-            $product_images = ProductImage::where('product_id',$product['id'])->whereNotNull('name')->select('name')->first();
-            if($product_images){
-                $productOwnerId = Seller::where('id',$product['seller_id'])->pluck('user_id');
-                $file = $this->getProductImagePathUser($product_images['name'],$productOwnerId);
-            }
-
-
             $keywordsArray = explode(",", $product['search_keywords']);
             $j = 0;
             foreach($keywordsArray as $keyword) {
@@ -577,7 +569,8 @@ class AuthController extends BaseController
                 $tagData[$k]['translated_name'] = $keywordsData['keyword'];
                 $tagData[$k]['percent'] = $keywordsData['percent'];
                 $tagData[$k]['discounted_price'] = $product['discounted_price'];
-                $tagData[$k]['image'] = $file;
+                $tagData[$k]['seller_sku'] = $product['seller_sku'];
+
                 $k++;
             }
         }
@@ -594,26 +587,6 @@ class AuthController extends BaseController
         }
         return $tag;
     }
-    public function getProductImagePathUser($imageName,$productOwnerId){
-        try{
-            $ds = DIRECTORY_SEPARATOR;
-            $sellerUploadConfig = env('SELLER_FILE_UPLOAD');
-            $sha1UserId = sha1($productOwnerId);
-            $path = $sellerUploadConfig.$sha1UserId.$ds.'product_images'.$ds.$imageName;
-            $file['path'] = $path;
-            return $file;
-        }catch(\Exception $e){
-            $data = [
-                'image name' => $imageName,
-                'product owner id' => $productOwnerId,
-                'action' => 'user side get image path',
-                'exception' => $e->getMessage()
-            ];
-            Log::critical(json_encode($data));
-            abort(500,$e->getMessage());
-        }
-    }
-
 }
 
 

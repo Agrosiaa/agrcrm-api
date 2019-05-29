@@ -9,8 +9,10 @@ use App\OrderHistory;
 use App\OrderStatus;
 use App\PostOffice;
 use App\Product;
+use App\ProductImage;
 use App\Role;
 use App\SalesUser;
+use App\Seller;
 use App\User;
 use App\WorkOrderStatusDetail;
 use Carbon\Carbon;
@@ -469,24 +471,6 @@ class AuthController extends BaseController
         }
     }
 
-//    public function getProducts(Request $request){
-//        try{
-//            $status = 200;
-//            Log::info(json_encode(trim($request->product_name)));
-//            $response = Product::where('product_name','ilike','%'.trim($request->product_name).'%')->get();
-//            Log::info($response);
-//        }catch (\Exception $exception){
-//            $status = 500;
-//            $response = null;
-//            $data = [
-//                'input_params' => $request->all(),
-//                'action' => 'get products',
-//                'exception' => $exception->getMessage()
-//            ];
-//            Log::critical(json_encode($data));
-//        }
-//        return response()->json($response,$status);
-//    }
     public function getProducts(Request $request) {
         try{
             $status = 200;
@@ -497,6 +481,7 @@ class AuthController extends BaseController
             }else{
                 $relevantResult = $this->getRelevantResult($request->product_name);
             }
+            Log::info(json_encode($relevantResult));
         }catch (\Exception $e){
             $status = 500;
             $data = [
@@ -514,26 +499,17 @@ class AuthController extends BaseController
     {
         $product_id = array();
         $searchResultsTake = env('SEARCH_RESULT');
-        $products = Product::whereIn('id',$product_id)->where('is_active',1)->where('quantity','!=',0)->select('id','product_name as name','slug','discounted_price')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
-
-        for($iterator = 0 ;$iterator < count($products) ; $iterator++){
-                $products[$iterator]['translated_name'] = ucwords($products[$iterator]['name']);
-        }
-        $productCount = count($products);
-
         $keywordLower = strtolower($keyword);
+        $products = Product::whereIn('id',$product_id)->where('is_active',1)->where('quantity','!=',0)->select('id','product_name as name','slug','discounted_price')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
         $tags = $this->getTags($keywordLower,$searchResultsTake);
         $tag = $tags['data'];
         $tagCount = count($tag);
-        $max = max($productCount,$tagCount);
+        $productCount = count($products);
+        $max = max($tagCount,$productCount);
         $k = 0;
         for($i = 0 ; $i  < $max ; $i++) {
-            if(!empty($products[$i])) {
-                $relevantData[$k] = $this->arrayFill($products[$i],$keywordLower,trans('product'),"btn-info",'product');
-                $k++;
-            }
-
             if(!empty($tag[$i])) {
+
                 $relevantData[$k]['id'] = $tag[$i]['id'];
                 $relevantData[$k]['name'] = $tag[$i]['name'];
                 $relevantData[$k]['translated_name'] = $tag[$i]['translated_name'];
@@ -544,33 +520,30 @@ class AuthController extends BaseController
                     $relevantData[$k]['position'] = 25;
                 }
                 $relevantData[$k]['translated_slug'] = trans('product');
-                $relevantData[$k]['slug'] = 'keyword';
                 $relevantData[$k]['class'] = "btn-danger";
                 $relevantData[$k]['url_param'] = '';
+                $relevantData[$k]['discounted_price'] = $tag[$i]['discounted_price'];
+                $relevantData[$k]['image'] = $tag[$i]['image'];
                 $k++;
             }
         }
         return $relevantData;
     }
 
-    public function arrayFill($data,$keywordLower,$translatedSlug,$class,$slug) {
-        $relevantData = array();
-            $relevantData['id'] = $data['id'];
-            $relevantData['name'] = $data['name'];
-            $relevantData['translated_name'] = $data['translated_name'];
-            $relevantData['url_param'] = $data['slug'];
-            $relevantData['position'] = stripos($data['name'],$keywordLower);
-            $relevantData['translated_slug'] = $translatedSlug;
-            $relevantData['slug'] = $slug;
-            $relevantData['class'] = $class;
-        return $relevantData;
-    }
 
     public function getTags($keywordLower,$searchResultsTake) {
-        $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('quantity','!=',0)->select('id','product_name','search_keywords','discounted_price')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
+        $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('is_active',1)->where('quantity','!=',0)->select('id','product_name','search_keywords','discounted_price','seller_id')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
         $k = 0;
         $tagData = array();
+        $file='';
         foreach($products as $product) {
+            $product_images = ProductImage::where('product_id',$product['id'])->whereNotNull('name')->select('name')->first();
+            if($product_images){
+                $productOwnerId = Seller::where('id',$product['seller_id'])->pluck('user_id');
+                $file = $this->getProductImagePathUser($product_images['name'],$productOwnerId);
+            }
+
+
             $keywordsArray = explode(",", $product['search_keywords']);
             $j = 0;
             foreach($keywordsArray as $keyword) {
@@ -603,6 +576,8 @@ class AuthController extends BaseController
                 $tagData[$k]['name'] = $keywordsData['keyword'];
                 $tagData[$k]['translated_name'] = $keywordsData['keyword'];
                 $tagData[$k]['percent'] = $keywordsData['percent'];
+                $tagData[$k]['discounted_price'] = $product['discounted_price'];
+                $tagData[$k]['image'] = $file;
                 $k++;
             }
         }
@@ -619,6 +594,26 @@ class AuthController extends BaseController
         }
         return $tag;
     }
+    public function getProductImagePathUser($imageName,$productOwnerId){
+        try{
+            $ds = DIRECTORY_SEPARATOR;
+            $sellerUploadConfig = env('SELLER_FILE_UPLOAD');
+            $sha1UserId = sha1($productOwnerId);
+            $path = $sellerUploadConfig.$sha1UserId.$ds.'product_images'.$ds.$imageName;
+            $file['path'] = $path;
+            return $file;
+        }catch(\Exception $e){
+            $data = [
+                'image name' => $imageName,
+                'product owner id' => $productOwnerId,
+                'action' => 'user side get image path',
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            abort(500,$e->getMessage());
+        }
+    }
+
 }
 
 

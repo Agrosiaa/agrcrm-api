@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Ixudra\Curl\Facades\Curl;
 
 class AuthController extends BaseController
 {
@@ -367,7 +368,7 @@ class AuthController extends BaseController
                         }
                     }
                 }else{
-                    $pincodeData = Curl::to('http://postalpincode.in/api/pincode/'.$requestPincode)->get();
+                    $pincodeData = Curl::to('http://www.postalpincode.in/api/pincode/'.$requestPincode)->get();
                     $pincodeData = json_decode($pincodeData);
                     if($pincodeData->PostOffice != null){
                         foreach($pincodeData->PostOffice as $data){
@@ -411,7 +412,9 @@ class AuthController extends BaseController
                 ];
             }else{
                 $postOffice = str_replace(" ","%20",$postOffice);
-                $postOfficeResponse = Curl::to('http://postalpincode.in/api/postoffice/'.($postOffice))->get();
+                Log::info($postOffice);
+                $postOfficeResponse = Curl::to('http://www.postalpincode.in/api/postoffice/'.$postOffice)->get();
+                Log::info($postOfficeResponse);
                 $postOfficeResponse = json_decode($postOfficeResponse);
                 $response = array();
                 if($postOfficeResponse->PostOffice != null){
@@ -481,7 +484,6 @@ class AuthController extends BaseController
             }else{
                 $relevantResult = $this->getRelevantResult($request->product_name);
             }
-            Log::info(json_encode($relevantResult));
         }catch (\Exception $e){
             $status = 500;
             $data = [
@@ -1011,7 +1013,6 @@ class AuthController extends BaseController
             Log::critical(json_encode($data));
         }
     }
-
 }
 
 

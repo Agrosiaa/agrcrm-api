@@ -13,7 +13,8 @@
         "cviebrock/eloquent-sluggable": "4.2.4",
         "brozot/laravel-fcm": "^1.2",
         "barryvdh/laravel-dompdf": "^0.8.1",
-        "illuminate/mail": "^5.4"
+        "illuminate/mail": "^5.4",
+        "ixudra/curl": "^6.16"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

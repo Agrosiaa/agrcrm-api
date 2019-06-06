@@ -30,5 +30,6 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->get('/get-products',array('uses' => 'AuthController@getProducts'));
     $app->post('/add-address',array('uses' => 'AuthController@addAddress'));
     $app->post('/edit-address',array('uses' => 'AuthController@editAddress'));
+    $app->post('/generate-order',array('uses' => 'AuthController@generate'));
 });
 

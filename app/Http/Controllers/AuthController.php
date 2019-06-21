@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\AppUsers;
 use App\Brand;
 use App\Category;
 use App\Chat;
@@ -351,7 +352,8 @@ class AuthController extends BaseController
                 ->where('users.mobile', $request->mobile)
                 ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'order_rma.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
                 ->get()->toArray();
-            $response['paymentType'] = PaymentMethods::all();
+            $response['deliveryTypes'] = DeliveryType::all();
+            $response['paymentTypes'] = PaymentMethods::all();
         } catch (\Exception $e) {
             $status = '500';
             $data = [
@@ -712,7 +714,7 @@ class AuthController extends BaseController
                 $orderStatus = OrderStatus::where('slug','to_pack')->first();
             }
             $shippingMethod = ShippingMethod::where('slug','agrosiaa_shipment')->first();
-            $delivery = DeliveryType::where('slug','normal')->first();
+            $delivery = DeliveryType::where('id',$data['delivery_type_id'])->first();
             $paymentMeth = PaymentMethods::where('slug','cod')->first();
             $customerAddress = CustomerAddress::findOrFail($data['address_id'])->toJson();
             $mailParameters['customer'] = json_decode($customerAddress);
@@ -738,7 +740,7 @@ class AuthController extends BaseController
             }else{
                 $paymentGatewayData = NULL;
             }
-            $deliveryType = DeliveryType::where('slug','normal')->select('name','amount')->first();
+            $deliveryType = DeliveryType::where('id',$data['delivery_type_id'])->select('name','amount')->first();
             $mailParameters['shippingCharges'] = $deliveryType->amount;
             $mailParameters['deliveryName'] = $deliveryType->name;
             $delivery_date = $this->getNormalDeliveryDate($currentTime,$deliveryType->name);
@@ -761,7 +763,7 @@ class AuthController extends BaseController
                 $sellerAddress = SellerAddress::findOrFail($product->seller_address_id)->toArray();
                 $orderData['seller_address'] = json_encode($sellerAddress);
                 $orderData['tax_information'] = json_encode($taxRate);
-                $deliveryTypeName = DeliveryType::where('id',1)->pluck('slug');
+                $deliveryTypeName = DeliveryType::where('id',$data['delivery_type_id'])->pluck('slug');
                 if($delivery['slug'] == 'normal'){
                     $dispatchDate = $this->getNormalDeliveryDate(Carbon::now(),'Fast');//To get
                     $dispatchDate = $dispatchDate ." 11:59:00";
@@ -794,14 +796,14 @@ class AuthController extends BaseController
                 $orderData['is_ps_campaign'] = $product['is_ps_campaign'];
                 $orderData['agrosiaa_campaign_charges'] = $product['agrosiaa_campaign_charges'];
                 $orderData['vendor_campaign_charges'] = $product['vendor_campaign_charges'];
-                /*$krishimitraId = AppUsers::join('krishimitra','krishimitra.id','=','app_users.krishimitra_id')
-                    ->where('app_users.mobile',$this->user->mobile)
+                $krishimitraId = AppUsers::join('krishimitra','krishimitra.id','=','app_users.krishimitra_id')
+                    ->where('app_users.mobile',$user['mobile'])
                     ->where('krishimitra.is_active', true)
                     ->select('app_users.krishimitra_id as krishimitra_id')->first();
-                $orderData['krishimitra_id'] = $krishimitraId['krishimitra_id'];*/
-                /*if($salesId != null){
-                    $orderData['sales_id'] = $salesId;
-                }*/
+                $orderData['krishimitra_id'] = $krishimitraId['krishimitra_id'];
+                if($request->sales_id != null){
+                    $orderData['sales_id'] = $request->sales_id;
+                }
                 //$orderData['referral_code'] = $data['referral_code'];
                 $order = Order::create($orderData);
                 $orderIds[] = $order['id'];
@@ -827,7 +829,7 @@ class AuthController extends BaseController
                 }
                 $orderHistory['order_id'] = $order->id;
                 $orderHistory['order_status_id'] = $orderStatus->id;
-                $orderHistory['user_id'] = 4;
+                $orderHistory['user_id'] = $user['id'];
                 $orderHistory['created_at'] =  $currentTime;
                 $orderHistory['updated_at'] =  $currentTime;
                 $orderHistoryData = OrderHistory::create($orderHistory);
@@ -856,7 +858,7 @@ class AuthController extends BaseController
                 $grandTotaltaxAmount += $taxAmount;
                 $structuredOrder['id'] = $this->getStructuredOrderId($order['id']);
                 if($is_success == true){
-                    $sendSMS = $this->sendOrderSms('8806587969',"Your Agrosiaa order AGR".$structuredOrder['id']." with item ".ucwords($product->product_name)." is successfully placed.");
+                    $sendSMS = $this->sendOrderSms($user['mobile'],"Your Agrosiaa order AGR".$structuredOrder['id']." with item ".ucwords($product->product_name)." is successfully placed.");
                 }
             }
             Log::info('out of loop');
@@ -876,12 +878,12 @@ class AuthController extends BaseController
                 $user = $user->toArray();
                 Log::info('in mail');
                 Log::info(json_encode($mailParameters));
-                /*Mail::send('emails.Customer.order',$mailParameters, function ($m) use ($user,$structuredOrderId) {
+                Mail::send('emails.Customer.order',$mailParameters, function ($m) use ($user,$structuredOrderId) {
                     $m->subject('Congratulations, order placed at Agrosiaa');
                     $m->to($user['email']);
-                    $m->bcc('kale40990@gmail.com');
+                    $m->bcc((env('APP_ENV') == 'live') ? 'bharat.woxi@gmail.com' : []);
                     $m->from(env('FROM_EMAIL'));
-                });*/
+                });
                 Log::info('mail sen to user');
             }
             if(count(Mail::failures()) == 0){
@@ -947,6 +949,7 @@ class AuthController extends BaseController
                     }
                 }
             }
+            Log::info('at end');
         }catch(\Exception $e){
             $data = [
                 'action' => 'Place order from checkout',

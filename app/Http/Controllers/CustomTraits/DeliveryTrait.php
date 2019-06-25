@@ -62,7 +62,7 @@ trait DeliveryTrait{
             $day = date('d',$strToTime);
             $hours = date('H',$strToTime);
             $minutes = date('i',$strToTime);
-            $holidaysList = Holidays::lists('date')->toArray();
+            $holidaysList = Holidays::select('date')->get()->toArray();
             if($time > "10:00:00" && $time < "15:59:00"){
                 $datetime = date('Y-m-d',strtotime($datetime));
                 if(date('D',strtotime($datetime))=='Sun' || in_array($datetime,$holidaysList)){

@@ -29,6 +29,7 @@ use App\WorkOrderStatusDetail;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Ixudra\Curl\Facades\Curl;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -880,7 +881,7 @@ class AuthController extends BaseController
                 Log::info(json_encode($mailParameters));
                 Mail::send('emails.Customer.order',$mailParameters, function ($m) use ($user,$structuredOrderId) {
                     $m->subject('Congratulations, order placed at Agrosiaa');
-                    $m->to($user['email']);
+                    $m->to('vaibhav.woxi@gmail.com');
                     $m->bcc((env('APP_ENV') == 'live') ? 'bharat.woxi@gmail.com' : []);
                     $m->from(env('FROM_EMAIL'));
                 });

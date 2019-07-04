@@ -344,6 +344,7 @@ class AuthController extends BaseController
                 ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                 ->where('users.mobile', $request->mobile)
                 ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
+                ->orderBy('orders.created_at','desc')
                 ->get()->toArray();
             $response['returns'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                 ->join('orders', 'orders.customer_id', '=', 'customers.id')
@@ -352,6 +353,7 @@ class AuthController extends BaseController
                 ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                 ->where('users.mobile', $request->mobile)
                 ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'order_rma.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
+                ->orderBy('orders.created_at','desc')
                 ->get()->toArray();
             $response['deliveryTypes'] = DeliveryType::all();
             $response['paymentTypes'] = PaymentMethods::all();
@@ -367,6 +369,148 @@ class AuthController extends BaseController
         }
         return response()->json($response, $status);
     }
+
+    public function customerOrders(Request $request)
+    {
+        try {
+            $status = '200';
+            if($request->has('retrieve') && $request->retrieve == 'ids'){
+                $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                    ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                    ->join('products', 'orders.product_id', '=', 'products.id')
+                    ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                    ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                    ->where('users.mobile', $request->mobile)
+                    ->orderBy('orders.created_at','desc')
+                    ->pluck('orders.id');
+            }
+            if($request->has('retrieve') && $request->retrieve == 'data'){
+                $response = User::join('customers', 'customers.user_id', '=', 'users.id')
+                    ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                    ->join('products', 'orders.product_id', '=', 'products.id')
+                    ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                    ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                    ->where('users.mobile', $request->mobile)
+                    ->whereIn('orders.id', $request->filteredIds)
+                    ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.display_name as status', 'payment_methods.name as payment_mode','products.seller_sku')
+                    ->orderBy('orders.created_at','desc')
+                    ->get()->toArray();
+            }
+
+            if($request->has('filter') && $request->filter == true){
+                if($request->has('ids') && !empty($request->ids)) {
+                    $resultFlag = true;
+                    // Search customer mobile number
+                    if ($request->has('order_no') && $request->order_no != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('products', 'orders.product_id', '=', 'products.id')
+                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('orders.id', $request->order_no)
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+                    if ($request->has('product') && $request->product != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('products', 'orders.product_id', '=', 'products.id')
+                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('products.product_name','ilike','%'.$request->product.'%')
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+                    if ($request->has('quantity') && $request->quantity != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('products', 'orders.product_id', '=', 'products.id')
+                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('orders.quantity',$request->quantity)
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+
+                    if ($request->has('skuid') && $request->skuid != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('products', 'orders.product_id', '=', 'products.id')
+                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('products.seller_sku','ilike','%'.$request->skuid.'%')
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+
+                    if ($request->has('status') && $request->status != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('products', 'orders.product_id', '=', 'products.id')
+                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('order_status.display_name','ilike','%'.$request->status.'%')
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+
+                    if ($request->has('awb_no') && $request->awb_no != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('products', 'orders.product_id', '=', 'products.id')
+                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('orders.consignment_number','ilike','%'.$request->awb_no.'%')
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+                    // Filter Customer listing with respect to sales parson name
+                }
+            }
+
+        } catch (\Exception $e) {
+            $status = '500';
+            $data = [
+                'action' => 'Created Customer',
+                'status' => $status,
+                'exception' => $e->getMessage(),
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
+        return response()->json($response, $status);
+    }
+
     public function getPincode(Request $request){
         try {
             $status = 200;
@@ -715,7 +859,7 @@ class AuthController extends BaseController
                 $orderStatus = OrderStatus::where('slug','to_pack')->first();
             }
             $shippingMethod = ShippingMethod::where('slug','agrosiaa_shipment')->first();
-            $delivery = DeliveryType::where('id',$data['delivery_type_id'])->first();
+            $delivery = DeliveryType::where('slug','=','normal')->first();
             $paymentMeth = PaymentMethods::where('slug','cod')->first();
             $customerAddress = CustomerAddress::findOrFail($data['address_id'])->toJson();
             $mailParameters['customer'] = json_decode($customerAddress);
@@ -741,7 +885,7 @@ class AuthController extends BaseController
             }else{
                 $paymentGatewayData = NULL;
             }
-            $deliveryType = DeliveryType::where('id',$data['delivery_type_id'])->select('name','amount')->first();
+            $deliveryType = DeliveryType::where('slug','=','normal')->select('name','amount')->first();
             $mailParameters['shippingCharges'] = $deliveryType->amount;
             $mailParameters['deliveryName'] = $deliveryType->name;
             $delivery_date = $this->getNormalDeliveryDate($currentTime,$deliveryType->name);
@@ -764,7 +908,7 @@ class AuthController extends BaseController
                 $sellerAddress = SellerAddress::findOrFail($product->seller_address_id)->toArray();
                 $orderData['seller_address'] = json_encode($sellerAddress);
                 $orderData['tax_information'] = json_encode($taxRate);
-                $deliveryTypeName = DeliveryType::where('id',$data['delivery_type_id'])->pluck('slug');
+                $deliveryTypeName = DeliveryType::where('slug','=','normal')->pluck('slug');
                 if($delivery['slug'] == 'normal'){
                     $dispatchDate = $this->getNormalDeliveryDate(Carbon::now(),'Fast');//To get
                     $dispatchDate = $dispatchDate ." 11:59:00";
@@ -805,7 +949,7 @@ class AuthController extends BaseController
                 if($request->sales_id != null){
                     $orderData['sales_id'] = $request->sales_id;
                 }
-                //$orderData['referral_code'] = $data['referral_code'];
+                $orderData['referral_code'] = $data['referral_code'];
                 $order = Order::create($orderData);
                 $orderIds[] = $order['id'];
                 $mailParameters['orderIds'][] = $this->getStructuredOrderId($order['id']);
@@ -895,7 +1039,7 @@ class AuthController extends BaseController
             $allSellers = Product::whereIn('id',$data['product_id'])->select('seller_id')->distinct('seller_id')->get()->toArray();
             //$allSellers = Order::where('cart_items',json_encode($data['cart_items']))->distinct('seller_id')->get();
             //$allSellers = Order::select('seller_id')->where('cart_items',json_encode($data['cart_items']))->distinct('seller_id')->get();
-            $DeliveryTypeInfo = DeliveryType::where('id',1)->first();
+            $DeliveryTypeInfo = DeliveryType::where('slug','=','normal')->first();
             foreach($allSellers as $seller){
                 $total = 0;
                 $orderSeller = Order::whereIn('id',$orderIds)->where('seller_id',$seller['seller_id'])->get();

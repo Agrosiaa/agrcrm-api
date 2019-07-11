@@ -331,6 +331,7 @@ class AuthController extends BaseController
     {
         try {
             $status = '200';
+            Log::info($request->mobile);
             $response['profile'] = User::where('mobile', $request->mobile)->first();
             $response['address'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                 ->join('customer_addresses', 'customer_addresses.customer_id', '=', 'customers.id')

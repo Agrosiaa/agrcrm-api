@@ -29,25 +29,25 @@ class AuthController extends BaseController
                     ->where('work_order_status_details.work_order_status_id','=','1')
                     ->whereNotIn('orders.order_status_id',[2,3,4,5,6,7,8,9,12,13,14,15])
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','2')
                     ->whereNotIn('orders.order_status_id',[2,3,4,5,6,7,8,9,12,13,14,15])
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['pending_for_customer_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','3')
                     ->whereNotIn('orders.order_status_id',[5,6,8,9,12,13,14,15])
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','4')
                     ->whereNotIn('orders.order_status_id',[5,6,8,9,12,13,14,15])
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
@@ -55,13 +55,13 @@ class AuthController extends BaseController
                     ->whereNotIn('orders.order_status_id',[4,5,6,8,9,12,13,14,15])
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                         ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date',
-                        'customer_issues.name')
+                        'customer_issues.name','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','6')
                     ->whereNotIn('orders.order_status_id',[1,2,3,4,6,7,9,12,13,14,15])
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
             }else{
                 $response['data']['pending_due_to_vendor'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
@@ -69,28 +69,28 @@ class AuthController extends BaseController
                     ->whereNotIn('orders.order_status_id',[2,3,4,5,6,7,8,9,12,13,14,15])
                     ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['pending_for_vendor_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','2')
                     ->whereNotIn('orders.order_status_id',[2,3,4,5,6,7,8,9,12,13,14,15])
                     ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['pending_for_customer_cancel'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','3')
                     ->whereNotIn('orders.order_status_id',[5,6,8,9,12,13,14,15])
                     ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['pending_for_pickup'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','4')
                     ->whereNotIn('orders.order_status_id',[5,6,8,9,12,13,14,15])
                     ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['customer_issues'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->join('customer_issues','customer_issues.id','=','work_order_status_details.customer_issue_id')
@@ -99,14 +99,14 @@ class AuthController extends BaseController
                     ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
                         ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date',
-                        'customer_issues.name')
+                        'customer_issues.name','orders.order_status_id')
                     ->get()->toArray();
                 $response['data']['dispatch_orders'] = WorkOrderStatusDetail::join('orders','orders.id','=','work_order_status_details.order_id')
                     ->where('work_order_status_details.work_order_status_id','=','6')
                     ->whereNotIn('orders.order_status_id',[7,9,12,13,14,15])
                     ->where('orders.sales_id','=',$request->sales_id)
                     ->select('orders.created_at','orders.sales_id','orders.consignment_number','work_order_status_details.order_id'
-                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date')
+                        ,'work_order_status_details.work_order_status_id','work_order_status_details.role_id','work_order_status_details.updated_at as work_order_date','orders.order_status_id')
                     ->get()->toArray();
             }
         }catch(\Exception $e){

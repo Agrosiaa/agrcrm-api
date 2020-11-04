@@ -7,6 +7,7 @@
  */
 
 namespace App\Http\Controllers;
+use App\Http\Controllers\CustomTraits\OrderTrait;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use App\Chat;
 use App\Order;
@@ -19,7 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 class OrderController extends BaseController
 {
-
+    use OrderTrait;
     public function orderDetails(Request $request){
         try{
             $status = '200';

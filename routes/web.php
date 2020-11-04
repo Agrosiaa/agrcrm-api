@@ -15,10 +15,11 @@ $app->get('/', function () use ($app) {
     return $app->version();
 });
 $app->group(['middleware' => ['cors']], function ($app) {
-    $app->get('/customer-orders', array('uses' => 'AuthController@customerOrders'));
+    $app->get('/customer-orders', array('uses' => 'OrderController@customerOrders'));
+    $app->get('/csr-orders', array('uses' => 'OrderController@csrOrders'));
     $app->get('/get-post-office-info/{id}', array('uses' => 'AuthController@getPostOfficeInfo'));
     $app->get('/get-pincode',array('uses' => 'AuthController@getPincode'));
-    $app->get('/get-products',array('uses' => 'AuthController@getProducts'));
+    $app->get('/get-products',array('uses' => 'ProductController@getProducts'));
     $app->get('/order-search', array('uses' => 'OrderController@orderSearch'));
     $app->get('/order-detail', array('uses' => 'OrderController@orderDetails'));
     $app->get('/order-chat', array('uses' => 'OrderController@orderChats'));
@@ -34,6 +35,6 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->post('/edit-address',array('uses' => 'CustomerController@editAddress'));
     $app->get('/get-abandoned-cart-data',array('uses' => 'CustomerController@abandonedListing'));
     $app->get('/abandoned-cart-details/{id}',array('uses' => 'CustomerController@abandonedDetails'));
-    $app->post('/generate-order',array('uses' => 'AuthController@generate'));
+    $app->post('/generate-order',array('uses' => 'OrderController@generate'));
 });
 

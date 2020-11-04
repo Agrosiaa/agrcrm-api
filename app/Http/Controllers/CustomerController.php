@@ -251,15 +251,13 @@ class CustomerController extends BaseController
         $keywordLower = strtolower($keyword);
         $customers = User::join('customers','users.id','=','customers.user_id')
             ->join('customer_addresses','customers.id','=','customer_addresses.customer_id')
-            ->where('users.first_name','ILIKE','%'.$keywordLower.'%')
-            ->orWhere('users.last_name','ILIKE','%'.$keywordLower.'%')
-            ->orWhere('customer_addresses.full_name','ILIKE','%'.$keywordLower.'%')
+            ->where('users.mobile','ILIKE','%'.$keywordLower.'%')
             ->where('users.is_active',1)
             ->where('users.role_id','=',4)
             ->distinct('users.id')
             ->select('users.id','users.first_name as name','users.email','users.mobile')
             ->orderBy('id','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
-        $tags = $this->getTags($keywordLower,$searchResultsTake);
+        $tags = $this->getTags($keywordLower,$searchResultsTake);Log::info(json_encode($tags));
         $tag = $tags['data'];
         $tagCount = count($tag);
         $custCount = count($customers);
@@ -283,9 +281,7 @@ class CustomerController extends BaseController
     public function getTags($keywordLower,$searchResultsTake) {
         $customers = User::join('customers','users.id','=','customers.user_id')
             ->join('customer_addresses','customers.id','=','customer_addresses.customer_id')
-            ->where('users.first_name','ILIKE','%'.$keywordLower.'%')
-            ->orWhere('users.last_name','ILIKE','%'.$keywordLower.'%')
-            ->orWhere('customer_addresses.full_name','ILIKE','%'.$keywordLower.'%')
+            ->where('users.mobile','ILIKE','%'.$keywordLower.'%')
              ->where('users.is_active',1)
             ->where('users.role_id','=',4)
             ->distinct('users.id')

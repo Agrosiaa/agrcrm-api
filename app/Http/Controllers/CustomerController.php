@@ -26,7 +26,7 @@ class CustomerController extends BaseController
 {
     public function createCustomer(Request $request){
         try{
-            $status = 200;
+            $status = '200';
             $userData['first_name'] = $request->fname;
             $userData['last_name'] = $request->lname;
             $userData['email'] = $request->email;
@@ -57,22 +57,21 @@ class CustomerController extends BaseController
                 }
             }
         }catch(\Exception $e){
-            $status = 500;
+            $status = '500';
             $data = [
                 'action' => 'Create new customer',
                 'status' =>$status,
                 'exception' => $e->getMessage()
             ];
             Log::critical(json_encode($data));
-            $response = null;
         }
+        return response()->json($status);
     }
 
     public function customerProfile(Request $request)
     {
         try {
             $status = '200';
-            Log::info($request->mobile);
             $response['profile'] = User::where('mobile', $request->mobile)->first();
             $response['address'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                 ->join('customer_addresses', 'customer_addresses.customer_id', '=', 'customers.id')
@@ -248,16 +247,16 @@ class CustomerController extends BaseController
     public function getRelevantResult($keyword)
     {
         $searchResultsTake = env('SEARCH_RESULT');
+        $relevantData = array();
         $keywordLower = strtolower($keyword);
         $customers = User::join('customers','users.id','=','customers.user_id')
-            ->join('customer_addresses','customers.id','=','customer_addresses.customer_id')
             ->where('users.mobile','ILIKE','%'.$keywordLower.'%')
             ->where('users.is_active',1)
             ->where('users.role_id','=',4)
             ->distinct('users.id')
             ->select('users.id','users.first_name as name','users.email','users.mobile')
             ->orderBy('id','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
-        $tags = $this->getTags($keywordLower,$searchResultsTake);Log::info(json_encode($tags));
+        $tags = $this->getTags($keywordLower,$searchResultsTake);
         $tag = $tags['data'];
         $tagCount = count($tag);
         $custCount = count($customers);
@@ -280,7 +279,6 @@ class CustomerController extends BaseController
 
     public function getTags($keywordLower,$searchResultsTake) {
         $customers = User::join('customers','users.id','=','customers.user_id')
-            ->join('customer_addresses','customers.id','=','customer_addresses.customer_id')
             ->where('users.mobile','ILIKE','%'.$keywordLower.'%')
              ->where('users.is_active',1)
             ->where('users.role_id','=',4)
@@ -288,6 +286,7 @@ class CustomerController extends BaseController
             ->select('users.id','users.first_name as f_name','users.last_name as l_name','users.mobile as user_mobile','users.email as email')->orderBy('id','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
         $k = 0;
         $tagData = array();
+        $tag = array();
         foreach($customers as $customer) {
                 $tagData[$k]['id'] = $customer['id'];
                 $tagData[$k]['fname'] = $customer['f_name'];
@@ -383,6 +382,31 @@ class CustomerController extends BaseController
                 $grandTotal += (($value['unit_price'] * $value['quantity']));
             }
             $response['grandTotal'] = $grandTotal;
+        } catch (\Exception $e) {
+            $status = '500';
+            $data = [
+                'action' => 'Created Customer',
+                'status' => $status,
+                'exception' => $e->getMessage(),
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
+        return response()->json($response, $status);
+    }
+
+    public function abandonedCarts(Request $request){
+        try {
+            $status = '200';
+            $response = User::join('customers', 'customers.user_id', '=', 'users.id')
+                ->join('cart', 'cart.customer_id', '=', 'customers.id')
+                ->whereNull('cart.deleted_at')
+                ->whereNotNull('cart.customer_id')
+                ->where('cart.is_purchased',false)
+                ->where('cart.is_delete_backend',false)
+                ->orderBy('cart.created_at','desc')
+                ->select('users.mobile')
+                ->get()->toArray();
         } catch (\Exception $e) {
             $status = '500';
             $data = [

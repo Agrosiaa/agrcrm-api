@@ -34,7 +34,9 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->get('/delete-address',array('uses' => 'CustomerController@deleteAddress'));
     $app->post('/edit-address',array('uses' => 'CustomerController@editAddress'));
     $app->get('/get-abandoned-cart-data',array('uses' => 'CustomerController@abandonedListing'));
+    $app->get('/get-abandoned-carts',array('uses' => 'CustomerController@abandonedCarts'));
     $app->get('/abandoned-cart-details/{id}',array('uses' => 'CustomerController@abandonedDetails'));
     $app->post('/generate-order',array('uses' => 'OrderController@generate'));
+    $app->get('/report-data',array('uses' => 'ReportController@reportData'));
 });
 

@@ -154,7 +154,6 @@ trait OrderTrait{
                     // Filter Customer listing with respect to sales parson name
                 }
             }
-            Log::info(json_encode($request->all()));
         } catch (\Exception $e) {
             $status = '500';
             $data = [

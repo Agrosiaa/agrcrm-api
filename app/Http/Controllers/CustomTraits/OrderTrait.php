@@ -185,10 +185,11 @@ trait OrderTrait{
                     ->join('users','customers.user_id','=','users.id')
                     ->join('products', 'orders.product_id', '=', 'products.id')
                     ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
+                    ->join('shipping_methods','shipping_methods.id','=','orders.shipping_method_id')
                     ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                     ->where('orders.sales_id', $request->csr_id)
                     ->whereIn('orders.id', $request->filteredIds)
-                    ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.display_name as status', 'payment_methods.name as payment_mode','products.seller_sku',DB::raw("CONCAT(users.first_name,' ',users.last_name) AS full_name"))
+                    ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.display_name as status', 'payment_methods.name as payment_mode','products.seller_sku','users.mobile','shipping_methods.name as shipment',DB::raw("CONCAT(users.first_name,' ',users.last_name) AS full_name"))
                     ->orderBy('orders.created_at','desc')
                     ->get()->toArray();
             }
@@ -264,7 +265,17 @@ trait OrderTrait{
                             $resultFlag = false;
                         }
                     }
-                    // Filter Customer listing with respect to sales parson name
+                    if ($request->has('shipment') && $request->shipment != "") {
+                        $response['orders'] = Order::join('shipping_methods','shipping_methods.id','=','orders.shipping_method_id')
+                            ->where('orders.sales_id', $request->csr_id)
+                            ->where('shipping_methods.name','ilike','%'.$request->shipment.'%')
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
                 }
             }
         } catch (\Exception $e) {

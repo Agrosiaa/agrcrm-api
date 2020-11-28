@@ -58,6 +58,8 @@ trait ProductTrait{
                 $relevantData[$k]['url_param'] = '';
                 $relevantData[$k]['discounted_price'] = $tag[$i]['discounted_price'];
                 $relevantData[$k]['seller_sku'] = $tag[$i]['seller_sku'];
+                $relevantData[$k]['minimum_quantity'] = $tag[$i]['minimum_quantity'];
+                $relevantData[$k]['maximum_quantity'] = $tag[$i]['maximum_quantity'];
                 $k++;
             }
         }
@@ -66,7 +68,7 @@ trait ProductTrait{
 
     public function getTags($keywordLower,$searchResultsTake) {
         $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('is_active',1)->where('quantity','!=',0)
-            ->select('id','product_name','search_keywords','discounted_price','seller_sku','seller_id')
+            ->select('id','product_name','search_keywords','discounted_price','seller_sku','seller_id','minimum_quantity','maximum_quantity')
             ->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
         $k = 0;
         $tagData = array();
@@ -108,6 +110,8 @@ trait ProductTrait{
                 $tagData[$k]['discounted_price'] = $product['discounted_price'];
                 $tagData[$k]['seller_sku'] = $product['seller_sku'];
                 $tagData[$k]['seller_id'] = $product['seller_id'];
+                $tagData[$k]['minimum_quantity'] = $product['minimum_quantity'];
+                $tagData[$k]['maximum_quantity'] = $product['maximum_quantity'];
                 $k++;
             }
         }

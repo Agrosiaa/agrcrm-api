@@ -47,12 +47,12 @@ class CustomerController extends BaseController
                     $customerAddress['flat_door_block_house_no'] = $request->house_block;
                     $customerAddress['name_of_premise_building_village'] = $request->village_premises;
                     $customerAddress['area_locality_wadi'] = $request->area;
-                    $customerAddress['road_street_lane'] = $request->road_street;
+                    $customerAddress['road_street_lane'] = $request->road;
                     $customerAddress['at_post'] = $request->at_post;
                     $customerAddress['taluka'] = $request->taluka;
                     $customerAddress['district'] = $request->dist;
                     $customerAddress['state'] = $request->state;
-                    $customerAddress['pincode'] = $request->pin;
+                    $customerAddress['pincode'] = $request->pincode;
                     CustomerAddress::create($customerAddress);
                 }
             }
@@ -154,6 +154,7 @@ class CustomerController extends BaseController
 
     public function editProfile(Request $request){
         try{
+            $status = 200;
             $userData['first_name'] = $request->f_name;
             $userData['last_name'] = $request->l_name;
             $userData['email'] = $request->email;
@@ -165,11 +166,12 @@ class CustomerController extends BaseController
             $response = null;
             $data = [
                 'input_params' => $request->all(),
-                'action' => 'Get post office info',
+                'action' => 'Edit Profile Info',
                 'exception' => $exception->getMessage()
             ];
             Log::critical(json_encode($data));
         }
+        return response()->json($status);
     }
 
     public function deleteAddress(Request $request){

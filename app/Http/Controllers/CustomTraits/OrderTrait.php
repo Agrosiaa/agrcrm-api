@@ -4,8 +4,10 @@ namespace App\Http\Controllers\CustomTraits;
 use App\AppUsers;
 use App\Brand;
 use App\Category;
+use App\Customer;
 use App\CustomerAddress;
 use App\DeliveryType;
+use App\Krishimitra;
 use App\Order;
 use App\OrderCustomerRelation;
 use App\OrderHistory;
@@ -294,7 +296,7 @@ trait OrderTrait{
     public function generate(Request $request){
         try{
             $data = $request->all();
-            $user = User::where('id',$data['cust_id'])->first();
+            $user = User::where('id',$data['cust_id'])->with('customer')->first();
             $grandTotal = 0;
             $grandTotalBeforeTaxnew = 0;
             $grandTotaltaxAmount = 0;
@@ -402,15 +404,25 @@ trait OrderTrait{
                 $orderData['is_ps_campaign'] = $product['is_ps_campaign'];
                 $orderData['agrosiaa_campaign_charges'] = $product['agrosiaa_campaign_charges'];
                 $orderData['vendor_campaign_charges'] = $product['vendor_campaign_charges'];
-                $krishimitraId = AppUsers::join('krishimitra','krishimitra.id','=','app_users.krishimitra_id')
-                    ->where('app_users.mobile',$user['mobile'])
-                    ->where('krishimitra.is_active', true)
-                    ->select('app_users.krishimitra_id as krishimitra_id')->first();
-                $orderData['krishimitra_id'] = $krishimitraId['krishimitra_id'];
                 if($request->sales_id != null){
                     $orderData['sales_id'] = $request->sales_id;
                 }
-                $orderData['referral_code'] = $data['referral_code'];
+                $deaultAgrosiaan = Krishimitra::where('is_agrosiaa_krishimitra',true)->value('id');
+                if($user->customer != null && $user->customer->krishimitra_id != null && $user->customer->krishimitra_id != $deaultAgrosiaan){
+                    $checkKrishimitra = Krishimitra::where('id',$user->customer->krishimitra_id)->where('is_active',true)->where('is_released','!=',true)->first();
+                    if($checkKrishimitra != null){
+                        $orderData['krishimitra_id'] = $checkKrishimitra['id'];
+                        $orderData['referral_code'] = $checkKrishimitra['referral_code'];
+                    }
+                }elseif($user->customer != null && $request->sales_id != null){
+                    if($user->customer->sales_id == null){
+                        $updateCustomerData['sales_id'] = $request->sales_id;
+                    }
+                    if ($user->customer->krishimitra_id == null){
+                        $updateCustomerData['krishimitra_id'] = $deaultAgrosiaan;
+                    }
+                    Customer::where('id',$user->customer->id)->update($updateCustomerData);
+                }
                 $order = Order::create($orderData);
                 $orderIds[] = $order['id'];
                 $mailParameters['orderIds'][] = $this->getStructuredOrderId($order['id']);
@@ -467,74 +479,26 @@ trait OrderTrait{
                     $sendSMS = $this->sendOrderSms($user['mobile'],"Your Agrosiaa order AGR".$structuredOrder['id']." with item ".ucwords($product->product_name)." is successfully placed.");
                 }
             }
-            Log::info('out of loop');
             $grandTotal = round(($grandTotalBeforeTaxnew + $grandTotaltaxAmount + $deliveryType->amount));
-            //$mailParameters['couponDiscount'] = $discount;
             $mailParameters['user'] = $user->toArray();
             $mailParameters['grandTotal'] = $grandTotal;
-            //Sending mail.
             $structuredOrderId = $this->getStructuredOrderId($order['id']);
-            Log::info('above mail');
-            Log::info($is_success);
-            Log::info(json_encode($user));
-            if($user->email != null){
-                Log::info('true');
-            }
             if($user['email'] != NULL && $user['is_email'] == true && $is_success == true){
                 $user = $user->toArray();
-                Log::info('in mail');
-                Log::info(json_encode($mailParameters));
                 Mail::send('emails.Customer.order',$mailParameters, function ($m) use ($user,$structuredOrderId) {
                     $m->subject('Congratulations, order placed at Agrosiaa');
-                    $m->to('vaibhav.woxi@gmail.com');
+                    $m->to($user['email']);
                     $m->bcc((env('APP_ENV') == 'live') ? 'bharat.woxi@gmail.com' : []);
                     $m->from(env('FROM_EMAIL'));
                 });
-                Log::info('mail sen to user');
             }
             if(count(Mail::failures()) == 0){
                 $orderHistory['is_email_sent'] = 1;
-                Log::info('success');
             }
-            // $firstOrder = Order::where('cart_items',json_encode($data['cart_items']))->first();
             $allSellers = Product::whereIn('id',$data['product_id'])->select('seller_id')->distinct('seller_id')->get()->toArray();
-            //$allSellers = Order::where('cart_items',json_encode($data['cart_items']))->distinct('seller_id')->get();
-            //$allSellers = Order::select('seller_id')->where('cart_items',json_encode($data['cart_items']))->distinct('seller_id')->get();
             $DeliveryTypeInfo = DeliveryType::where('slug','=','normal')->first();
             foreach($allSellers as $seller){
-                $total = 0;
                 $orderSeller = Order::whereIn('id',$orderIds)->where('seller_id',$seller['seller_id'])->get();
-                $structuredOrderIds = array();
-                for($i = 0 ; $i < count($orderSeller); $i++){
-                    $structuredOrderIds[$i] = "AGR".$this->getStructuredOrderId($orderSeller[$i]['id']);
-                    $orderSeller[$i]['order_format'] = $this->getStructuredOrderId($orderSeller[$i]['id']);
-                    $product = Product::where('id',$orderSeller[$i]['product_id'])->select('product_name','brand_id')->first();
-                    $orderSeller[$i]['product_name'] = ucwords($product['product_name']);
-                    $orderSeller[$i]['brand_name'] = Brand::where('id',$product['brand_id'])->pluck('name');
-                    $delivery_amnt = DeliveryType::where('id',$orderSeller[$i]['delivery_type_id'])->value('amount');
-                    if($orderSeller[$i]['is_configurable'] == true){
-                        $total = $total + $delivery_amnt + (($orderSeller[$i]['discounted_price'] * ($orderSeller[$i]['length'] * $orderSeller[$i]['width'])) * $orderSeller[$i]['quantity']);
-                    }else{
-                        $total = $total + $delivery_amnt + ($orderSeller[$i]['discounted_price'] * $orderSeller[$i]['quantity']);
-                    }
-                }
-                $AllOrderIds = implode("," , $structuredOrderIds);
-                $sellerData = Seller::where('id',$seller['seller_id'])->first()->toArray();
-                $sellerUser = User::where('id',$sellerData['user_id'])->first()->toArray();
-                if($sellerUser['email'] != NULL && $sellerUser['is_email'] == true && $is_success == true){
-                    $singleOrder = Order::whereIn('id',$orderIds)->first();
-                    $DeliveryTypeInfo = DeliveryType::where('id',$singleOrder['delivery_type_id'])->select('name','amount')->first();
-                    $customerAddress = OrderCustomerRelation::where('id',$singleOrder['order_customer_info_id'])->value('billing_address');
-                    $address = json_decode($customerAddress);
-                    $orderedOn = date('l, d M',strtotime($singleOrder['created_at']));
-                    $deliveryDate = date('l, d M',strtotime($singleOrder['delivery_date']));
-                    $sellerMailParameters = array('sellerUser'=>$sellerUser,'orderedOn' => $orderedOn,'deliveryDate'=>$deliveryDate,'DeliveryTypeInfo'=>$DeliveryTypeInfo,'structuredOrderId'=>$structuredOrderId,'address'=>$address,'orderSeller'=>$orderSeller,'total'=>$total);
-                    Mail::send('emails.Seller.order',$sellerMailParameters, function ($message) use ($sellerUser,$AllOrderIds,$sellerData) {
-                        $message->subject('Agrosiaa Order(s) '.$AllOrderIds.' Received');
-                        $message->to('vaibhav.woxi@gmail.com');
-                        $message->from(env('FROM_EMAIL'));
-                    });
-                }
                 $orderCount = $orderSeller->count();
                 if($DeliveryTypeInfo->id != 1){
                     if($orderCount == 1){
@@ -544,9 +508,7 @@ trait OrderTrait{
                                 ->update(['delivery_amount' =>$DeliveryTypeInfo->amount]);
                         }
                     } else {
-
                         $beforeDecimal = $this->amountAdjustment($DeliveryTypeInfo->amount,$orderCount);
-                        $orders = $orderSeller->toArray();
                         for($i=0 ; $i< $orderCount; $i++){
                             DB::table('orders')
                                 ->where('id', $orderSeller[$i]['id'])
@@ -555,7 +517,6 @@ trait OrderTrait{
                     }
                 }
             }
-            Log::info('at end');
         }catch(\Exception $e){
             $data = [
                 'action' => 'Place order from checkout',

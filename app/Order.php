@@ -15,7 +15,7 @@ class Order extends Model
         'cart_items','seller_id','tax_rate','tax_information','seller_address','delivery_date','sla_bridge',
         'payment_gateway_data','dispatch_date','pick_up_date','subtotal','selling_price','hsn_code_tax_relation_id','is_web_order',
         'length','width','is_configurable','krishimitra_id','weight_logistic','article_number','consignment_date','commission_percent','logistic_percent',
-        'is_ps_campaign','agrosiaa_campaign_charges','vendor_campaign_charges','sales_id',
+        'is_ps_campaign','agrosiaa_campaign_charges','vendor_campaign_charges','sales_id','referral_code'
     ];
 
     public function product()

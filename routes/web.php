@@ -15,10 +15,30 @@ $app->get('/', function () use ($app) {
     return $app->version();
 });
 $app->group(['middleware' => ['cors']], function ($app) {
-    $app->get('/order-detail', array('uses' => 'AuthController@orderDetails'));
-    $app->get('/order-search', array('uses' => 'AuthController@orderSearch'));
-    $app->get('/order-chat', array('uses' => 'AuthController@orderChats'));
-    $app->post('/order-reply', array('uses' => 'AuthController@orderReply'));
-    $app->post('/order-cancel', array('uses' => 'AuthController@orderCancel'));
+    $app->get('/customer-orders', array('uses' => 'OrderController@customerOrders'));
+    $app->get('/csr-orders', array('uses' => 'OrderController@csrOrders'));
+    $app->get('/get-post-office-info/{id}', array('uses' => 'AuthController@getPostOfficeInfo'));
+    $app->get('/get-pincode',array('uses' => 'AuthController@getPincode'));
+    $app->get('/get-products',array('uses' => 'ProductController@getProducts'));
+    $app->get('/order-search', array('uses' => 'OrderController@orderSearch'));
+    $app->get('/order-detail', array('uses' => 'OrderController@orderDetails'));
+    $app->get('/order-chat', array('uses' => 'OrderController@orderChats'));
+    $app->post('/order-reply', array('uses' => 'OrderController@orderReply'));
+    $app->post('/order-cancel', array('uses' => 'OrderController@orderCancel'));
+    $app->get('/validate-inventory',array('uses' => 'OrderController@validateInventory'));
+    $app->get('/get-customers',array('uses' => 'CustomerController@getCustomers'));
+    $app->get('/customer-profile', array('uses' => 'CustomerController@customerProfile'));
+    $app->get('/create-customer', array('uses' => 'CustomerController@createCustomer'));
+    $app->get('/created-customers', array('uses' => 'CustomerController@createdCustomers'));
+    $app->get('/edit-profile',array('uses' => 'CustomerController@editProfile'));
+    $app->post('/add-address',array('uses' => 'CustomerController@addAddress'));
+    $app->get('/delete-address',array('uses' => 'CustomerController@deleteAddress'));
+    $app->post('/edit-address',array('uses' => 'CustomerController@editAddress'));
+    $app->get('/get-abandoned-cart-data',array('uses' => 'CustomerController@abandonedListing'));
+    $app->get('/get-abandoned-carts',array('uses' => 'CustomerController@abandonedCarts'));
+    $app->get('/abandoned-cart-details/{id}',array('uses' => 'CustomerController@abandonedDetails'));
+    $app->post('/generate-order',array('uses' => 'OrderController@generate'));
+    $app->get('/report-data',array('uses' => 'ReportController@reportData'));
+    $app->get('/get-tags',array('uses' => 'TagController@getTags'));
 });
 

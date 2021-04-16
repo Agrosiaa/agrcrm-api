@@ -1,25 +1,41 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Chat;
-use App\Customer;
+use App\AppUsers;
+use App\Brand;
+use App\Category;
 use App\CustomerAddress;
+use App\DeliveryType;
 use App\Order;
+use App\OrderCustomerRelation;
 use App\OrderHistory;
 use App\OrderStatus;
+use App\PaymentMethods;
 use App\PostOffice;
 use App\Product;
-use App\Role;
-use App\SalesUser;
+use App\ProductCategoryRelation;
+use App\Seller;
+use App\SellerAddress;
+use App\ShippingMethod;
+use App\Tax;
 use App\User;
-use App\WorkOrderStatusDetail;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Ixudra\Curl\Facades\Curl;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\CustomTraits\SendMessageTrait;
+use App\Http\Controllers\CustomTraits\DeliveryTrait;
+
 
 class AuthController extends BaseController
 {
+
+    use SendMessageTrait;
+    use DeliveryTrait;
+
     public function orderDetails(Request $request){
         try{
             $status = '200';
@@ -253,107 +269,6 @@ class AuthController extends BaseController
             return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
         }
 
-    }
-    public function orderSearch(Request $request){
-        try{
-            $status = 200;
-            $response = WorkOrderStatusDetail::where('order_id','=',$request->order)->with('orders')->get()->toArray();
-        }catch(\Exception $exception){
-            $status = 500;
-            $data = [
-                'action' => 'Order Search',
-                'status' => $status,
-                'exception' => $exception->getMessage()
-            ];
-            Log::critical(json_encode($data));
-            $response = null;
-        }
-        return response()->json($response, $status);
-
-    }
-
-    public function createCustomer(Request $request){
-        try{
-            $status = 200;
-            $userData['first_name'] = $request->fname;
-            $userData['last_name'] = $request->lname;
-            $userData['email'] = $request->email;
-            $userData['mobile'] = $request->mobile;
-            $userData['dob'] = $request->dob;
-            $userData['password'] = bcrypt($request->mobile);
-            $userData['is_active'] = true;
-            $userData['role_id'] = Role::where('slug','=','customer')->value('id');
-            $user = User::create($userData);
-            $customerData['user_id'] = $user->id;
-            $customerData['is_web'] = true;
-            $customer = Customer::create($customerData);
-            if($request->has('house_block') && $request->has('village_premises')){
-                if($request->house_block != '' && $request->village_premises != ''){
-                    $customerAddress['customer_id'] = $customer->id;
-                    $customerAddress['full_name'] = $request->address_fname;
-                    $customerAddress['mobile'] = $request->address_mobile;
-                    $customerAddress['flat_door_block_house_no'] = $request->house_block;
-                    $customerAddress['name_of_premise_building_village'] = $request->village_premises;
-                    $customerAddress['area_locality_wadi'] = $request->area;
-                    $customerAddress['road_street_lane'] = $request->road_street;
-                    $customerAddress['at_post'] = $request->at_post;
-                    $customerAddress['taluka'] = $request->taluka;
-                    $customerAddress['district'] = $request->dist;
-                    $customerAddress['state'] = $request->state;
-                    $customerAddress['pincode'] = $request->pin;
-                    CustomerAddress::create($customerAddress);
-                }
-            }
-        }catch(\Exception $e){
-            $status = 500;
-            $data = [
-                'action' => 'Create new customer',
-                'status' =>$status,
-                'exception' => $e->getMessage()
-            ];
-            Log::critical(json_encode($data));
-            $response = null;
-        }
-    }
-
-    public function customerProfile(Request $request)
-    {
-        try {
-            $status = '200';
-            $response['profile'] = User::where('mobile', $request->mobile)->first();
-            $response['address'] = User::join('customers', 'customers.user_id', '=', 'users.id')
-                ->join('customer_addresses', 'customer_addresses.customer_id', '=', 'customers.id')
-                ->where('users.mobile', $request->mobile)
-                ->select('customer_addresses.*')
-                ->get()->toArray();
-            $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
-                ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                ->join('products', 'orders.product_id', '=', 'products.id')
-                ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
-                ->where('users.mobile', $request->mobile)
-                ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
-                ->get()->toArray();
-            $response['returns'] = User::join('customers', 'customers.user_id', '=', 'users.id')
-                ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                ->join('order_rma', 'order_rma.order_id', '=', 'orders.id')
-                ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
-                ->where('users.mobile', $request->mobile)
-                ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'order_rma.product_name', 'order_status.status', 'payment_methods.name as payment_mode')
-                ->get()->toArray();
-        } catch (\Exception $e) {
-            $status = '500';
-            $data = [
-                'action' => 'Created Customers',
-                'status' => $status,
-                'exception' => $e->getMessage(),
-            ];
-            Log::critical(json_encode($data));
-            $response = null;
-        }
-        return response()->json($response, $status);
-    }
     public function getPincode(Request $request){
         try {
             $status = 200;
@@ -375,7 +290,7 @@ class AuthController extends BaseController
                         }
                     }
                 }else{
-                    $pincodeData = Curl::to('http://postalpincode.in/api/pincode/'.$requestPincode)->get();
+                    $pincodeData = Curl::to('http://www.postalpincode.in/api/pincode/'.$requestPincode)->get();
                     $pincodeData = json_decode($pincodeData);
                     if($pincodeData->PostOffice != null){
                         foreach($pincodeData->PostOffice as $data){
@@ -419,7 +334,9 @@ class AuthController extends BaseController
                 ];
             }else{
                 $postOffice = str_replace(" ","%20",$postOffice);
-                $postOfficeResponse = Curl::to('http://postalpincode.in/api/postoffice/'.($postOffice))->get();
+                Log::info($postOffice);
+                $postOfficeResponse = Curl::to('http://www.postalpincode.in/api/postoffice/'.$postOffice)->get();
+                Log::info($postOfficeResponse);
                 $postOfficeResponse = json_decode($postOfficeResponse);
                 $response = array();
                 if($postOfficeResponse->PostOffice != null){
@@ -444,55 +361,7 @@ class AuthController extends BaseController
         }
         return response()->json($response,$status);
     }
-    public function editProfile(Request $request){
-        try{
-            $userData['first_name'] = $request->f_name;
-            $userData['last_name'] = $request->l_name;
-            $userData['email'] = $request->email;
-            $userData['mobile'] = $request->mobile;
-            $userData['dob'] = $request->dob;
-            User::where('id',$request->id)->update($userData);
-        }catch (\Exception $exception){
-                $status = 500;
-                $response = null;
-                $data = [
-                    'input_params' => $request->all(),
-                    'action' => 'Get post office info',
-                    'exception' => $exception->getMessage()
-                ];
-                Log::critical(json_encode($data));
-        }
-    }
 
-    public function deleteAddress(Request $request){
-        try{
-           CustomerAddress::where('id',$request->address_id)->delete();
-        }catch (\Exception $exception){
-            $status = 500;
-            $response = null;
-            $data = [
-                'input_params' => $request->all(),
-                'action' => 'delete address',
-                'exception' => $exception->getMessage()
-            ];
-            Log::critical(json_encode($data));
-        }
-    }
-
-    public function getProducts(Request $request){
-        try{
-            $response = Product::where('product_name','ilike','%'.$request->product_name.'%')->get()->toArray();
-        }catch (\Exception $exception){
-            $status = 500;
-            $response = null;
-            $data = [
-                'input_params' => $request->all(),
-                'action' => 'get products',
-                'exception' => $exception->getMessage()
-            ];
-            Log::critical(json_encode($data));
-        }
-    }
 }
 
 

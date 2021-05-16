@@ -26,4 +26,36 @@ class Product extends Model
         'seller_address_id','brand_id','admin_id','item_based_sku','out_of_stock_date','selling_price','subtotal','hsn_code_tax_relation_id',
         'configurable_width','logistic_percent','commission_percent','is_ps_campaign','agrosiaa_campaign_charges','vendor_campaign_charges'
     ];
+
+    public function seller(){
+        return $this->belongsTo('App\Seller','seller_id');
+    }
+
+    public function images(){
+        return $this->hasMany('App\ProductImage','product_id');
+    }
+
+    public function features(){
+        return $this->hasMany('App\ProductFeatureRelation','product_id');
+    }
+
+    public function productcategory(){
+        return $this->hasMany('App\ProductCategoryRelation','product_id');
+    }
+
+    public function productCategoryRel(){
+        return $this->hasOne('App\ProductCategoryRelation','product_id');
+    }
+
+    public function brand(){
+        return $this->belongsTo('App\Brand','brand_id');
+    }
+
+    public function tax(){
+        return $this->belongsTo('App\Tax' ,'tax_id');
+    }
+
+    public function hsnCodeTaxRelation(){
+        return $this->belongsTo('App\HSNCodeTaxRelation','hsn_code_tax_relation_id');
+    }
 }

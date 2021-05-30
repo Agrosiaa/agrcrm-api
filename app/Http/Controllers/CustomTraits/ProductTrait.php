@@ -32,6 +32,7 @@ trait ProductTrait{
     public function getRelevantResult($keyword)
     {
         $product_id = array();
+        $relevantData = array();
         $searchResultsTake = env('SEARCH_RESULT');
         $keywordLower = strtolower($keyword);
         $products = Product::whereIn('id',$product_id)->where('is_active',1)->where('quantity','!=',0)->select('id','product_name as name','slug','discounted_price')->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();

@@ -191,59 +191,44 @@ class CustomerController extends BaseController
 
     public function addAddress(Request $request){
         try{
-            $customerId = Customer::where('user_id',$request->user_id)->value('id');
+            $response['status'] = 200;
+            $customerId = Customer::where('user_id',$request->customer_user_id)->value('id');
             $customerAddress = CustomerAddress::where('customer_id',$customerId)->get()->toArray();
             if(count($customerAddress) < 3){
+                $addressData = $request->all();
+                unset($addressData['customer_user_id']);
                 $addressData['customer_id'] = $customerId;
-                $addressData['full_name'] = $request->address_fname;
-                $addressData['mobile'] = $request->address_mobile;
-                $addressData['flat_door_block_house_no'] = $request->house_block;
-                $addressData['name_of_premise_building_village'] = $request->village_premises;
-                $addressData['area_locality_wadi'] = $request->area;
-                $addressData['road_street_lane'] = $request->road_street;
-                $addressData['at_post'] = $request->at_post;
-                $addressData['taluka'] = $request->taluka;
-                $addressData['district'] = $request->dist;
-                $addressData['state'] = $request->state;
-                $addressData['pincode'] = $request->pin;
                 CustomerAddress::create($addressData);
             }
-        }catch (\Exception $exception){
+        }catch (\Exception $e){
             $status = 500;
-            $response = null;
             $data = [
-                'input_params' => $request->all(),
-                'action' => 'add address',
-                'exception' => $exception->getMessage()
+                'action' => 'Add Customer Address',
+                'status' =>$status,
+                'exception' => $e->getMessage(),
             ];
             Log::critical(json_encode($data));
+            $response['status'] = $status;
         }
+        return response()->json($response);
     }
 
     public function editAddress(Request $request){
         try{
-            $addressData['full_name'] = $request->address_fname;
-            $addressData['mobile'] = $request->address_mobile;
-            $addressData['flat_door_block_house_no'] = $request->house_block;
-            $addressData['name_of_premise_building_village'] = $request->village_premises;
-            $addressData['area_locality_wadi'] = $request->area;
-            $addressData['road_street_lane'] = $request->road_street;
-            $addressData['at_post'] = $request->at_post;
-            $addressData['taluka'] = $request->taluka;
-            $addressData['district'] = $request->dist;
-            $addressData['state'] = $request->state;
-            $addressData['pincode'] = $request->pin;
-            $customerAddress = CustomerAddress::where('id',$request->address_id)->update($addressData);
-        }catch (\Exception $exception){
+            $response['status'] = 200;
+            $addressData = $request->all();
+            CustomerAddress::where('id',$request->id)->update($addressData);
+        }catch (\Exception $e){
             $status = 500;
-            $response = null;
             $data = [
-                'input_params' => $request->all(),
-                'action' => 'edit address',
-                'exception' => $exception->getMessage()
+                'action' => 'Edit Customer Address',
+                'status' =>$status,
+                'exception' => $e->getMessage(),
             ];
             Log::critical(json_encode($data));
+            $response['status'] = $status;
         }
+        return response()->json($response);
     }
 
     public function getRelevantResult($keyword)

@@ -51,7 +51,9 @@ trait OrderTrait{
                     ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                     ->where('users.mobile', $request->mobile)
                     ->whereIn('orders.id', $request->filteredIds)
-                    ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.display_name as status', 'payment_methods.name as payment_mode','products.seller_sku')
+                    ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.length','orders.width','orders.discounted_price','orders.is_configurable',
+                        'orders.delivery_amount','orders.agrosiaa_discount','orders.coupon_discount',
+                        'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.display_name as status', 'payment_methods.name as payment_mode','products.seller_sku')
                     ->orderBy('orders.created_at','desc')
                     ->get()->toArray();
             }
@@ -295,32 +297,15 @@ trait OrderTrait{
 
     public function generate(Request $request){
         try{
+            $response['status'] = 200;
+            $response['data'] = null;
             $data = $request->all();
             $user = User::where('id',$data['cust_id'])->with('customer')->first();
-            $grandTotal = 0;
             $grandTotalBeforeTaxnew = 0;
             $grandTotaltaxAmount = 0;
-            $paymentMethod = PaymentMethods::findOrFail(1);
-            if($paymentMethod->slug=='citrus'){
-                $jsonData = json_decode($data['citrusData']);
-                if($jsonData->TxStatus == 'SUCCESS'){
-                    $is_success = true;
-                    $orderStatus = OrderStatus::where('slug','to_pack')->first();
-                }else if($jsonData->TxStatus == 'FAIL'){
-                    if($jsonData->pgRespCode == 1){
-                        $orderStatus = OrderStatus::where('slug','abort')->first();
-                    }else{
-                        $orderStatus = OrderStatus::where('slug','failed')->first();
-                    }
-                    $is_success = false;
-                }else if($jsonData->TxStatus == 'CANCELED'){
-                    $is_success = false;
-                    $orderStatus = OrderStatus::where('slug','abort')->first();
-                }
-            }else{
-                $is_success = true;
-                $orderStatus = OrderStatus::where('slug','to_pack')->first();
-            }
+            $is_success = true;
+            $paymentGatewayData = NULL;
+            $orderStatus = OrderStatus::where('slug','to_pack')->first();
             $shippingMethod = ShippingMethod::where('slug','agrosiaa_shipment')->first();
             $delivery = DeliveryType::where('slug','=','normal')->first();
             $paymentMeth = PaymentMethods::where('slug','cod')->first();
@@ -343,18 +328,65 @@ trait OrderTrait{
                 'created_at'=> $currentTime,
                 'updated_at'=> $currentTime
             ];
-            if($paymentMeth->slug=='citrus'){
-                $paymentGatewayData = $data['citrusData'];
-            }else{
-                $paymentGatewayData = NULL;
-            }
             $deliveryType = DeliveryType::where('slug','=','normal')->select('name','amount')->first();
             $mailParameters['shippingCharges'] = $deliveryType->amount;
             $mailParameters['deliveryName'] = $deliveryType->name;
             $delivery_date = $this->getNormalDeliveryDate($currentTime,$deliveryType->name);
             $mailParameters['deliveryDate'] = date('l, d M',strtotime($delivery_date));
+            $cartPrice = 0;
+            foreach($data['product_id'] as $productId){
+                $discountdPrice = Product::where('id',$productId)->value('discounted_price') * $data['product_qnt'][$productId];
+                $cartPrice = $discountdPrice + $cartPrice;
+            }
+            if(env('DIGITAL_BHARAT_DISCOUNT') == true && $request->has('referral_code') && $data['referral_code'] == env('DIGITAL_BHARAT_CODE')){
+                $agrosiaaDiscount = array();
+                if(count($data['product_id']) == 1){
+                    if($cartPrice > 2500){
+                        $agrosiaaDiscount[$data['product_id'][0]] = round((2 * $cartPrice)/100,2);
+                    }elseif($cartPrice > 500){
+                        $agrosiaaDiscount[$data['product_id'][0]] = 50;
+                    }else{
+                        $agrosiaaDiscount[$data['product_id'][0]] = 0;
+                    }
+                }else{
+                    $flagDiscount = false;
+                    $cartEntityPrice = 0;
+                    $cartEntityId = null;
+                    foreach ($data['product_id'] as $productId){
+                        $discountdPrice = Product::where('id',$productId)->value('discounted_price') * $data['product_qnt'][$productId];
+                        if($discountdPrice >= 50){
+                            if($cartEntityPrice < $discountdPrice){
+                                $cartEntityPrice = $discountdPrice;
+                                $cartEntityId = $productId;
+                                $flagDiscount = true;
+                            }
+                        }
+                    }
+                    if($flagDiscount){
+                        if($cartPrice > 2500){
+                            $agrosiaaDiscount[$cartEntityId] = round((2 * $cartPrice)/100,2);
+                        }elseif($cartPrice > 500){
+                            $agrosiaaDiscount[$cartEntityId] = 50;
+                        }else{
+                            $agrosiaaDiscount[$cartEntityId] = 0;
+                        }
+                    }else{
+                        if($cartPrice > 500){
+                            foreach ($data['product_id'] as $cartEntity){
+                                $agrosiaaDiscount[$cartEntity] = round((50/count($data['product_id'])),2);
+                            }
+                        }
+
+                    }
+                }
+            }
+            $deliveryAmount = $this->amountAdjustment(50,count($data['product_id']));
+            Log::info(json_encode($deliveryAmount));
+            $deliveryAmntCnt = 0;
             foreach ($request->product_id as $item){
                 $orderData = array();
+                $product = Product::where('id',$item)->first();
+                $response['data'][] = $product['product_name'];
                 $orderData['address_id'] = $request->address_id;
                 $orderData['product_id'] = $item;
                 $orderData['quantity'] = $request->product_qnt[$item];
@@ -362,7 +394,6 @@ trait OrderTrait{
                 $orderData['customer_id'] = $customerId['customer_id'];
                 $orderData['payment_gateway_data'] = $paymentGatewayData;
                 $orderData = array_merge($orderData,$other);
-                $product = Product::where('id',$item)->first();
                 $orderData['seller_id'] = $product['seller_id'];
                 $taxRate = Tax::where('id',$product['tax_id'])->first();
                 $mailParameters['productNames'][] = $product['product_name'];
@@ -415,6 +446,7 @@ trait OrderTrait{
                         $orderData['referral_code'] = $checkKrishimitra['referral_code'];
                     }
                 }elseif($user->customer != null && $request->sales_id != null){
+                    $updateCustomerData = array();
                     if($user->customer->sales_id == null){
                         $updateCustomerData['sales_id'] = $request->sales_id;
                     }
@@ -423,22 +455,22 @@ trait OrderTrait{
                     }
                     Customer::where('id',$user->customer->id)->update($updateCustomerData);
                 }
+                if(env('DIGITAL_BHARAT_DISCOUNT') == true && $request->has('referral_code') && $data['referral_code'] == env('DIGITAL_BHARAT_CODE')){
+                    if(array_key_exists($item,$agrosiaaDiscount)){
+                        $orderData['agrosiaa_discount'] = $agrosiaaDiscount[$item];
+                    }
+                }
+                if($cartPrice <= 500){
+                    $orderData['delivery_amount'] = $deliveryAmount[$deliveryAmntCnt];
+                    $deliveryAmntCnt++;
+                }
                 $order = Order::create($orderData);
                 $orderIds[] = $order['id'];
                 $mailParameters['orderIds'][] = $this->getStructuredOrderId($order['id']);
                 $updatedQuantity = $product['quantity'] - $orderData['quantity'];
-                if($paymentMeth->slug=='citrus'){
-                    $jsonData = json_decode($data['citrusData']);
-                    if($jsonData->TxStatus == 'SUCCESS'){
-                        $product->update([
-                            'quantity'=>$updatedQuantity
-                        ]);
-                    }
-                }else{
-                    $product->update([
-                        'quantity'=>$updatedQuantity
-                    ]);
-                }
+                $product->update([
+                    'quantity'=>$updatedQuantity
+                ]);
                 if(Empty($product['out_of_stock_date']) && ($product['quantity'] <= $product['minimum_quantity'] || $product['quantity'] < 0)){
                     $outOfStockDate = Carbon::now();
                     $product->update([
@@ -495,36 +527,17 @@ trait OrderTrait{
             if(count(Mail::failures()) == 0){
                 $orderHistory['is_email_sent'] = 1;
             }
-            $allSellers = Product::whereIn('id',$data['product_id'])->select('seller_id')->distinct('seller_id')->get()->toArray();
-            $DeliveryTypeInfo = DeliveryType::where('slug','=','normal')->first();
-            foreach($allSellers as $seller){
-                $orderSeller = Order::whereIn('id',$orderIds)->where('seller_id',$seller['seller_id'])->get();
-                $orderCount = $orderSeller->count();
-                if($DeliveryTypeInfo->id != 1){
-                    if($orderCount == 1){
-                        for($i=0 ; $i< $orderCount; $i++){
-                            DB::table('orders')
-                                ->where('id', $orderSeller[$i]['id'])
-                                ->update(['delivery_amount' =>$DeliveryTypeInfo->amount]);
-                        }
-                    } else {
-                        $beforeDecimal = $this->amountAdjustment($DeliveryTypeInfo->amount,$orderCount);
-                        for($i=0 ; $i< $orderCount; $i++){
-                            DB::table('orders')
-                                ->where('id', $orderSeller[$i]['id'])
-                                ->update(['delivery_amount' => $beforeDecimal[$i]]);
-                        }
-                    }
-                }
-            }
-        }catch(\Exception $e){
+        }catch (\Exception $e){
+            $status = 500;
             $data = [
-                'action' => 'Place order from checkout',
-                'request'=> $request->all(),
-                'exception' => $e->getMessage()
+                'action' => 'Place Customer Order',
+                'status' =>$status,
+                'exception' => $e->getMessage(),
             ];
             Log::critical(json_encode($data));
+            $response['status'] = $status;
         }
+        return response()->json($response);
     }
 
     public function amountAdjustment($amount,$orderCount){

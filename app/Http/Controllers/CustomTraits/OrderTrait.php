@@ -36,9 +36,6 @@ trait OrderTrait{
             if($request->has('retrieve') && $request->retrieve == 'ids'){
                 $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                     ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                    ->join('products', 'orders.product_id', '=', 'products.id')
-                    ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                    ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                     ->where('users.mobile', $request->mobile)
                     ->orderBy('orders.created_at','desc')
                     ->pluck('orders.id');
@@ -49,10 +46,11 @@ trait OrderTrait{
                     ->join('products', 'orders.product_id', '=', 'products.id')
                     ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
                     ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
+                    ->join('shipping_methods', 'orders.shipping_method_id', '=', 'shipping_methods.id')
                     ->where('users.mobile', $request->mobile)
                     ->whereIn('orders.id', $request->filteredIds)
                     ->select('orders.id', 'orders.quantity', 'orders.created_at', 'orders.length','orders.width','orders.discounted_price','orders.is_configurable',
-                        'orders.delivery_amount','orders.agrosiaa_discount','orders.coupon_discount',
+                        'orders.delivery_amount','orders.agrosiaa_discount','orders.coupon_discount','shipping_methods.name as shipment',
                         'orders.subtotal', 'orders.consignment_number', 'products.product_name', 'order_status.display_name as status', 'payment_methods.name as payment_mode','products.seller_sku')
                     ->orderBy('orders.created_at','desc')
                     ->get()->toArray();
@@ -65,9 +63,6 @@ trait OrderTrait{
                     if ($request->has('order_no') && $request->order_no != "") {
                         $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                             ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                            ->join('products', 'orders.product_id', '=', 'products.id')
-                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                             ->where('users.mobile', $request->mobile)
                             ->where('orders.id', $request->order_no)
                             ->whereIn('orders.id',$request->ids)
@@ -81,10 +76,21 @@ trait OrderTrait{
                         $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                             ->join('orders', 'orders.customer_id', '=', 'customers.id')
                             ->join('products', 'orders.product_id', '=', 'products.id')
-                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                             ->where('users.mobile', $request->mobile)
                             ->where('products.product_name','ilike','%'.$request->product.'%')
+                            ->whereIn('orders.id',$request->ids)
+                            ->orderBy('orders.created_at','desc')
+                            ->pluck('orders.id');
+                        if (!empty($response['orders'])) {
+                            $resultFlag = false;
+                        }
+                    }
+                    if ($request->has('shipment') && $request->shipment != "") {
+                        $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
+                            ->join('orders', 'orders.customer_id', '=', 'customers.id')
+                            ->join('shipping_methods', 'orders.shipping_method_id', '=', 'shipping_methods.id')
+                            ->where('users.mobile', $request->mobile)
+                            ->where('shipping_methods.name','ilike','%'.$request->shipment.'%')
                             ->whereIn('orders.id',$request->ids)
                             ->orderBy('orders.created_at','desc')
                             ->pluck('orders.id');
@@ -95,9 +101,6 @@ trait OrderTrait{
                     if ($request->has('quantity') && $request->quantity != "") {
                         $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                             ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                            ->join('products', 'orders.product_id', '=', 'products.id')
-                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                             ->where('users.mobile', $request->mobile)
                             ->where('orders.quantity',$request->quantity)
                             ->whereIn('orders.id',$request->ids)
@@ -112,8 +115,6 @@ trait OrderTrait{
                         $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                             ->join('orders', 'orders.customer_id', '=', 'customers.id')
                             ->join('products', 'orders.product_id', '=', 'products.id')
-                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                             ->where('users.mobile', $request->mobile)
                             ->where('products.seller_sku','ilike','%'.$request->skuid.'%')
                             ->whereIn('orders.id',$request->ids)
@@ -127,9 +128,7 @@ trait OrderTrait{
                     if ($request->has('status') && $request->status != "") {
                         $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                             ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                            ->join('products', 'orders.product_id', '=', 'products.id')
                             ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                             ->where('users.mobile', $request->mobile)
                             ->where('order_status.display_name','ilike','%'.$request->status.'%')
                             ->whereIn('orders.id',$request->ids)
@@ -143,9 +142,6 @@ trait OrderTrait{
                     if ($request->has('awb_no') && $request->awb_no != "") {
                         $response['orders'] = User::join('customers', 'customers.user_id', '=', 'users.id')
                             ->join('orders', 'orders.customer_id', '=', 'customers.id')
-                            ->join('products', 'orders.product_id', '=', 'products.id')
-                            ->join('order_status', 'orders.order_status_id', '=', 'order_status.id')
-                            ->join('payment_methods', 'orders.payment_method_id', '=', 'payment_methods.id')
                             ->where('users.mobile', $request->mobile)
                             ->where('orders.consignment_number','ilike','%'.$request->awb_no.'%')
                             ->whereIn('orders.id',$request->ids)

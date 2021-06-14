@@ -69,7 +69,8 @@ trait ProductTrait{
 
     public function getTags($keywordLower,$searchResultsTake) {
         $products = Product::where('search_keywords','ILIKE','%'.$keywordLower.'%')->where('is_active',1)->where('quantity','!=',0)
-            ->select('id','product_name','search_keywords','discounted_price','seller_sku','seller_id','minimum_quantity','maximum_quantity')
+            ->select('id','product_name','search_keywords','discounted_price','seller_sku','seller_id','minimum_quantity',
+                'maximum_quantity','quantity')
             ->orderBy('discounted_price','asc')->take($searchResultsTake)->skip(0)->get()->toArray();
         $k = 0;
         $tagData = array();
@@ -112,7 +113,11 @@ trait ProductTrait{
                 $tagData[$k]['seller_sku'] = $product['seller_sku'];
                 $tagData[$k]['seller_id'] = $product['seller_id'];
                 $tagData[$k]['minimum_quantity'] = $product['minimum_quantity'];
-                $tagData[$k]['maximum_quantity'] = $product['maximum_quantity'];
+                if($product['quantity'] < $product['maximum_quantity']){
+                    $tagData[$k]['maximum_quantity'] = $product['quantity'];
+                }else{
+                    $tagData[$k]['maximum_quantity'] = $product['maximum_quantity'];
+                }
                 $k++;
             }
         }

@@ -228,6 +228,26 @@ class OrderController extends BaseController
         return response()->json($chatHistoryData, $status);
     }
 
+    public function validateReferral(Request $request){
+        try{
+            $status = 200;
+            $response['is_validate'] = false;
+            if(env('DIGITAL_BHARAT_CODE') == $request->referral){
+                $response['is_validate'] = true;
+            }
+        }catch(\Exception $e){
+            $status = 500;
+            $data = [
+                'action' => 'Validate Referral',
+                'status' => $status,
+                'exception' => $e->getMessage()
+            ];
+            Log::critical(json_encode($data));
+            $response = null;
+        }
+        return response()->json($response);
+    }
+
     function humanTiming ($time)
     {
         $time = time() - $time; // to get the time since that moment

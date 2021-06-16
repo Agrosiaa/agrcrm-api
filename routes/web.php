@@ -31,6 +31,7 @@ $app->group(['middleware' => ['cors']], function ($app) {
     $app->post('/order-cancel', array('uses' => 'OrderController@orderCancel'));
     $app->get('/validate-inventory',array('uses' => 'OrderController@validateInventory'));
     $app->post('/generate-order',array('uses' => 'OrderController@generate'));
+    $app->post('/validate-referral',array('uses' => 'OrderController@validateReferral'));
 
     $app->get('/get-customers',array('uses' => 'CustomerController@getCustomers'));
     $app->get('/customer-profile', array('uses' => 'CustomerController@customerProfile'));

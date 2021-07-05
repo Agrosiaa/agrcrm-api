@@ -25,11 +25,21 @@ class TagController extends BaseController
             $response = array();
             if($request->has('last_update') && $request->last_update != null){
                 $response['categories'] = Category::where('created_at','>=',$request->last_update)->select('name as tag_name')->get()->toArray();
-                $response['products'] = Product::where('created_at','>=',$request->last_update)->select('product_name as tag_name')->get()->toArray();
+                $response['products'] = Product::join('product_category','product_category.product_id','=','products.id')
+                    ->join('categories as item_head','item_head.id','=','product_category.category_id')
+                    ->join('categories as sub_cat','sub_cat.id','=','item_head.category_id')
+                    ->join('categories as cat','cat.id','=','sub_cat.category_id')
+                    ->select('products.product_name as tag_name','item_head.slug as item_head_slug','sub_cat.slug as sub_cat_slug','cat.slug as cat_slug')
+                    ->get()->toArray();
                 $response['agronomy'] = Agronomy::where('created_at','>=',$request->last_update)->select('crop_name as tag_name')->get()->toArray();
             }else{
                 $response['categories'] = Category::select('name as tag_name')->get()->toArray();
-                $response['products'] = Product::select('product_name as tag_name')->get()->toArray();
+                $response['products'] = Product::join('product_category','product_category.product_id','=','products.id')
+                    ->join('categories as item_head','item_head.id','=','product_category.category_id')
+                    ->join('categories as sub_cat','sub_cat.id','=','item_head.category_id')
+                    ->join('categories as cat','cat.id','=','sub_cat.category_id')
+                    ->select('products.product_name as tag_name','item_head.slug as item_head_slug','sub_cat.slug as sub_cat_slug','cat.slug as cat_slug')
+                    ->get()->toArray();
                 $response['agronomy'] = Agronomy::select('crop_name as tag_name')->get()->toArray();
             }
         } catch (\Exception $e) {

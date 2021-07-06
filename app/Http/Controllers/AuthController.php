@@ -268,6 +268,7 @@ class AuthController extends BaseController
             $numberOfUnits = floor($time / $unit);
             return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
         }
+    }
 
     public function getPincode(Request $request){
         try {

@@ -293,9 +293,9 @@ trait OrderTrait{
 
     public function generate(Request $request){
         try{
-            $response['status'] = 200;
+            $response['status'] = "200";
             $response['data'] = null;
-            $data = $request->all();
+	    $data = $request->all();
             $user = User::where('id',$data['cust_id'])->with('customer')->first();
             $grandTotalBeforeTaxnew = 0;
             $grandTotaltaxAmount = 0;
@@ -377,13 +377,13 @@ trait OrderTrait{
                 }
             }
             $deliveryAmount = $this->amountAdjustment(50,count($data['product_id']));
-            Log::info(json_encode($deliveryAmount));
             $deliveryAmntCnt = 0;
             foreach ($request->product_id as $item){
                 $orderData = array();
                 $product = Product::where('id',$item)->first();
                 $response['data'][] = $product['product_name'];
-                $orderData['address_id'] = $request->address_id;
+		$orderData['address_id'] = $request->address_id;
+		$orderData['special_note'] = $request->special_note;
                 $orderData['product_id'] = $item;
                 $orderData['quantity'] = $request->product_qnt[$item];
                 $customerId = CustomerAddress::select('customer_id')->where('id',$request->address_id)->first();
@@ -460,6 +460,8 @@ trait OrderTrait{
                     $orderData['delivery_amount'] = $deliveryAmount[$deliveryAmntCnt];
                     $deliveryAmntCnt++;
                 }
+		Log::info('above create order');
+		Log::info(json_encode($orderData));
                 $order = Order::create($orderData);
                 $orderIds[] = $order['id'];
                 $mailParameters['orderIds'][] = $this->getStructuredOrderId($order['id']);
@@ -489,6 +491,7 @@ trait OrderTrait{
                     $mailParameters['productSubtotals'][] = $order->discounted_price * $order['quantity'];
                     $totalBeforeTaxnewPerUnit = round($order->discounted_price / (($order->tax_rate / 100)+1),2);
                 }
+
                 $taxAmount = ($order->tax_rate / 100) * $totalBeforeTaxnewPerUnit * $order->quantity;
                 $totalBeforeTaxnew = $totalBeforeTaxnewPerUnit * $order->quantity;
                 $mailParameters['totalBeforeTax'][] = $totalBeforeTaxnew;
@@ -503,10 +506,12 @@ trait OrderTrait{
                 $grandTotalBeforeTaxnew += $totalBeforeTaxnew;
                 $grandTotaltaxAmount += $taxAmount;
                 $structuredOrder['id'] = $this->getStructuredOrderId($order['id']);
+		Log::info('above msg snt');
                 if($is_success == true){
-                    $sendSMS = $this->sendOrderSms($user['mobile'],"Your Agrosiaa order AGR".$structuredOrder['id']." with item ".ucwords($product->product_name)." is successfully placed.");
+                   // $sendSMS = $this->sendOrderSms($user['mobile'],"Your Agrosiaa order AGR".$structuredOrder['id']." with item ".ucwords($product->product_name)." is successfully placed.");
                 }
             }
+
             $grandTotal = round(($grandTotalBeforeTaxnew + $grandTotaltaxAmount + $deliveryType->amount));
             $mailParameters['user'] = $user->toArray();
             $mailParameters['grandTotal'] = $grandTotal;
@@ -524,7 +529,7 @@ trait OrderTrait{
                 $orderHistory['is_email_sent'] = 1;
             }
         }catch (\Exception $e){
-            $status = 500;
+            $status = "500";
             $data = [
                 'action' => 'Place Customer Order',
                 'status' =>$status,

@@ -69,7 +69,7 @@ class ReportController extends BaseController
                         }else{
                             $orderAmount = (($orderDatum["discounted_price"]+$orderDatum["delivery_amount"]-$orderDatum['coupon_discount']) * $orderDatum['quantity']);
                         }
-                        $data[$row]['Order Amount'] = $orderAmount;
+                        $data[$row]['Order Amount'] = strval($orderAmount);
                         $data[$row]['Order Weightage'] = $orderDatum['weight_logistic'];
                         /*if(!in_array($orderDatum['id'],$commissionAmountCalculatedOrders)){
                             if($orderDatum['consignment_number'] != '' || $orderDatum['consignment_number'] != null){
